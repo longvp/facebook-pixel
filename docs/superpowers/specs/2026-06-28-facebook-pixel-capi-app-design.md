@@ -11,7 +11,6 @@ Conversions API (CAPI) from inside the Shopify admin. Merchant can:
 
 - CRUD pixels (Facebook Pixel ID + friendly name)
 - Enable CAPI per pixel with an access token (stored encrypted)
-- Choose which pages are tracked: **All / Selected / Excluded**
 - Toggle each pixel **active / inactive**
 
 Browser-side events fire through a Web Pixel Extension; server-side events fire
@@ -57,8 +56,6 @@ facebook-pixel/
 // Shopify session storage (from template)
 model Session { /* shop, accessToken, scope, etc. */ }
 
-enum TrackingMode { ALL  SELECTED  EXCLUDED }
-
 model Pixel {
   id            String        @id @default(cuid())
   shop          String        @db.VarChar(255)
@@ -67,8 +64,6 @@ model Pixel {
   capiEnabled   Boolean       @default(false)
   accessToken   String?       @db.Text   // CAPI token, encrypted at rest
   testEventCode String?
-  trackingMode  TrackingMode  @default(ALL)
-  trackingPages Json          // page paths/handles for SELECTED / EXCLUDED
   active        Boolean       @default(true)
   createdAt     DateTime      @default(now())
   updatedAt     DateTime      @updatedAt
@@ -84,13 +79,13 @@ secret in env) and never returned to the client in plaintext.
 
 - `app._index` — pixel list (Polaris `IndexTable`) with active/inactive toggle
 - `app.pixels.new` / `app.pixels.$id` — CRUD form: Pixel ID, name, CAPI toggle +
-  token, test event code, tracking mode + page selector
+  token, test event code
 - `app/services/capi.server.ts` — send events to the Facebook Conversions API
   (SHA-256 hash PII, attach `event_id` for browser/server dedup)
 - `app/services/pixel.server.ts` — CRUD + token encrypt/decrypt
 - `app/routes/webhooks.*` — `orders/create` → Purchase event; `app/uninstalled` → cleanup
 - `extensions/web-pixel/` — sandbox: subscribe to browser events, fire the
-  browser pixel honoring `trackingMode` + `active`, attach `event_id`
+  browser pixel for each `active` pixel, attach `event_id`
 
 ## 5a. UI / UX (reference: `docs/ui/pixel-app-ui.html`)
 
@@ -99,7 +94,7 @@ Rebuild it with **Polaris React** (`@shopify/polaris`) — the official React
 component library — wrapped in App Bridge (`@shopify/app-bridge-react`). The
 mockup hand-rolls Polaris design tokens for illustration only; the real app must
 use actual Polaris React components (`Page`, `Card`, `IndexTable`, `FormLayout`,
-`TextField`, `ChoiceList`, `Checkbox`, `Badge`, `Banner`, `Button`, `Frame` +
+`TextField`, `Checkbox`, `Badge`, `Banner`, `Button`, `Frame` +
 `Toast`, `Modal`), not hand-written CSS. Import `@shopify/polaris/build/esm/styles.css`
 and wrap the app in `<AppProvider>`. Match layout, copy, and behavior of the
 mockup. Two screens, single-app surface:
@@ -109,8 +104,7 @@ mockup. Two screens, single-app surface:
 - Card toolbar: search input (placeholder "Search by pixel name, pixel ID") +
   primary **"Add pixel"** button.
 - Table columns: **Active** (toggle) · **Pixel ID** (monospace) · **Pixel name** ·
-  **Pages** (badge: All / Selected / Excluded pages) · **Conversion API** (toggle) ·
-  **Actions** (edit + delete icon buttons).
+  **Conversion API** (toggle) · **Actions** (edit + delete icon buttons).
 - Pagination: page-size select (5 / 10 / 20), prev/next, `current/total` info.
 - Footer note with knowledge-base / support links.
 - Empty state: "No pixels found" row.
@@ -121,8 +115,6 @@ mockup. Two screens, single-app surface:
   - Pixel name — required, max 255, char counter.
   - Pixel ID — required, max 20, char counter, "How I get it?" help link.
     **Immutable on edit** (field disabled when editing).
-  - Tracking on pages — bordered radio group: **All pages / Selected page /
-    Excluded page**.
 - **CAPI card** (collapsible):
   - Header: Facebook icon, "Conversions API (solution for iOS 14.5)" +
     "Recommended" badge, descriptive subtitle, enable toggle.
@@ -162,15 +154,13 @@ mockup. Two screens, single-app surface:
 
 ## 7a. Open Items (surface into `docs/flow/questions.md` during /classify)
 
-- The mockup shows the **Selected / Excluded** radio modes but no page-picker UI
-  yet. The actual picker (how the merchant chooses which pages/handles) needs a
-  small follow-up design. Until decided, persist `trackingPages` as an empty list
-  and treat SELECTED/EXCLUDED like ALL.
 - Test event code persistence: the mockup clears it on edit. Decide whether to
   store it or treat it as a transient, testing-only value.
 
 ## 8. Out of Scope (YAGNI)
 
+- **Page-level tracking selection** (All / Selected / Excluded) — dropped; every
+  active pixel tracks all pages.
 - Multi-account / team roles
 - Analytics dashboards beyond basic pixel status
 - Integration with the existing Go backend

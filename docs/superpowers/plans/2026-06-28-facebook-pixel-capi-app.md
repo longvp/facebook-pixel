@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Build a Shopify embedded app (Node + Remix + Polaris) that lets a merchant CRUD Facebook Pixels, enable the Conversions API (CAPI) per pixel with an encrypted access token, choose tracking pages (All/Selected/Excluded), and toggle each pixel active/inactive — plus the `.claude` tooling and flow that drive its development.
+**Goal:** Build a Shopify embedded app (Node + Remix + Polaris) that lets a merchant CRUD Facebook Pixels, enable the Conversions API (CAPI) per pixel with an encrypted access token, and toggle each pixel active/inactive — plus the `.claude` tooling and flow that drive its development.
 
 **Architecture:** A standalone Remix app persists pixels in MySQL via Prisma. Browser events fire through a Web Pixel Extension; server-side events fire through the Facebook Conversions API driven by Shopify webhooks, deduplicated via a shared `event_id`. The UI is rebuilt with real Polaris components from the approved mockup `docs/ui/pixel-app-ui.html`.
 
@@ -34,7 +34,7 @@
 - `docs/flow/.gitkeep` — output dir for flow phases.
 
 **App (Phases 1–4, created relative to scaffold root):**
-- `prisma/schema.prisma` — `Session` (template) + `Pixel` model + `TrackingMode` enum.
+- `prisma/schema.prisma` — `Session` (template) + `Pixel` model.
 - `app/lib/crypto.server.ts` — AES-256-GCM encrypt/decrypt for tokens.
 - `app/models/pixel.server.ts` — Pixel CRUD + token encrypt/decrypt + validation.
 - `app/lib/capi.server.ts` — build + send Conversions API events.
@@ -111,12 +111,39 @@ git commit -m "docs: add CLAUDE.md project guide"
 ### Task 2: `.claude/settings.json` (hooks + permissions)
 
 **Files:**
+- Create: `.claude/hooks/format.mjs` (the formatter script the hook calls)
 - Create: `.claude/settings.json`
 
 **Interfaces:**
-- Produces: a `PostToolUse` hook that formats edited TS/TSX with Prettier; a permission allowlist for `npm`/`npx`/`shopify`/`prisma`/`node`.
+- Produces: a `PostToolUse` hook that formats edited TS/TSX with Prettier via a
+  standalone script; a permission allowlist for `npm`/`npx`/`shopify`/`prisma`/`node`.
 
-- [ ] **Step 1: Write `.claude/settings.json`**
+- [ ] **Step 1: Write `.claude/hooks/format.mjs`**
+
+The PostToolUse hook receives the tool call as JSON on **stdin**
+(`tool_input.file_path`). Keeping the logic in a script file avoids fragile
+multi-layer escaping inside settings.json.
+
+```js
+// .claude/hooks/format.mjs
+// PostToolUse hook: format edited .ts/.tsx files with Prettier.
+import { execSync } from "node:child_process";
+
+let raw = "";
+process.stdin.on("data", (d) => (raw += d));
+process.stdin.on("end", () => {
+  try {
+    const file = JSON.parse(raw || "{}")?.tool_input?.file_path || "";
+    if (/\.(ts|tsx)$/.test(file)) {
+      execSync(`npx prettier --write "${file}"`, { stdio: "ignore" });
+    }
+  } catch {
+    // Never block the tool call on a formatting failure.
+  }
+});
+```
+
+- [ ] **Step 2: Write `.claude/settings.json`**
 
 ```json
 {
@@ -136,7 +163,7 @@ git commit -m "docs: add CLAUDE.md project guide"
         "hooks": [
           {
             "type": "command",
-            "command": "node -e \"let s='';process.stdin.on('data',d=>s+=d).on('end',()=>{try{const f=(JSON.parse(s).tool_input||{}).file_path||'';if(/\\.(ts|tsx)$/.test(f)){require('child_process').execSync('npx prettier --write \\\"'+f+'\\\"',{stdio:'ignore'});}}catch(e){}})\""
+            "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/format.mjs\""
           }
         ]
       }
@@ -145,15 +172,15 @@ git commit -m "docs: add CLAUDE.md project guide"
 }
 ```
 
-- [ ] **Step 2: Verify JSON is valid**
+- [ ] **Step 3: Verify JSON is valid**
 
 Run: `node -e "JSON.parse(require('fs').readFileSync('.claude/settings.json','utf8')); console.log('ok')"`
 Expected: `ok`
 
-- [ ] **Step 3: Commit**
+- [ ] **Step 4: Commit**
 
 ```bash
-git add .claude/settings.json
+git add .claude/settings.json .claude/hooks/format.mjs
 git commit -m "chore: add Claude settings with Prettier hook and permissions"
 ```
 
@@ -430,7 +457,7 @@ git commit -m "chore: scaffold Shopify Remix app + add Vitest"
 - Modify: `.env` (DATABASE_URL — not committed) and `.env.example` (committed)
 
 **Interfaces:**
-- Produces: `Pixel` table and `TrackingMode` enum, consumed by `app/models/pixel.server.ts`.
+- Produces: `Pixel` table, consumed by `app/models/pixel.server.ts`.
 
 - [ ] **Step 1: Set the datasource to MySQL in `prisma/schema.prisma`**
 
@@ -441,15 +468,9 @@ datasource db {
 }
 ```
 
-- [ ] **Step 2: Add the enum and model to `prisma/schema.prisma`**
+- [ ] **Step 2: Add the model to `prisma/schema.prisma`**
 
 ```prisma
-enum TrackingMode {
-  ALL
-  SELECTED
-  EXCLUDED
-}
-
 model Pixel {
   id            String       @id @default(cuid())
   shop          String       @db.VarChar(255)
@@ -458,8 +479,6 @@ model Pixel {
   capiEnabled   Boolean      @default(false)
   accessToken   String?      @db.Text
   testEventCode String?      @db.VarChar(32)
-  trackingMode  TrackingMode @default(ALL)
-  trackingPages Json
   active        Boolean      @default(true)
   createdAt     DateTime     @default(now())
   updatedAt     DateTime     @updatedAt
@@ -598,7 +617,7 @@ git commit -m "feat: add AES-256-GCM token encryption"
   - `setActive(shop, id, active: boolean): Promise<PixelView>`
   - `setCapiEnabled(shop, id, enabled: boolean): Promise<PixelView>` (throws if enabling without a stored token)
   - `getDecryptedToken(shop, id): Promise<string | null>` (server-only; never sent to client)
-  - Types: `PixelInput = { name; pixelId; trackingMode; trackingPages: string[]; capiEnabled; accessToken?; testEventCode? }`; `PixelView` = pixel fields **minus** `accessToken`, plus `hasAccessToken: boolean`.
+  - Types: `PixelInput = { name; pixelId; capiEnabled; accessToken?; testEventCode? }`; `PixelView` = pixel fields **minus** `accessToken`, plus `hasAccessToken: boolean`.
 
 - [ ] **Step 1: Write the failing test (validation + token redaction)**
 
@@ -628,8 +647,7 @@ beforeEach(() => { process.env.APP_ENCRYPTION_KEY = Buffer.alloc(32, 7).toString
 describe("pixel model", () => {
   it("redacts the access token in the returned view", async () => {
     const view: any = await createPixel("s.myshopify.com", {
-      name: "P", pixelId: "123", trackingMode: "ALL", trackingPages: [],
-      capiEnabled: true, accessToken: "tok",
+      name: "P", pixelId: "123", capiEnabled: true, accessToken: "tok",
     });
     expect(view.accessToken).toBeUndefined();
     expect(view.hasAccessToken).toBe(true);
@@ -637,7 +655,7 @@ describe("pixel model", () => {
 
   it("refuses to enable CAPI without a stored token", async () => {
     const p: any = await createPixel("s.myshopify.com", {
-      name: "Q", pixelId: "999", trackingMode: "ALL", trackingPages: [], capiEnabled: false,
+      name: "Q", pixelId: "999", capiEnabled: false,
     });
     await expect(setCapiEnabled("s.myshopify.com", p.id, true)).rejects.toThrow(/access token/i);
   });
@@ -655,13 +673,10 @@ Expected: FAIL — cannot find module `./pixel.server`.
 // app/models/pixel.server.ts
 import prisma from "../db.server";
 import { encrypt, decrypt } from "../lib/crypto.server";
-import type { TrackingMode } from "@prisma/client";
 
 export type PixelInput = {
   name: string;
   pixelId: string;
-  trackingMode: TrackingMode;
-  trackingPages: string[];
   capiEnabled: boolean;
   accessToken?: string;
   testEventCode?: string | null;
@@ -670,17 +685,15 @@ export type PixelInput = {
 export type PixelView = {
   id: string; shop: string; name: string; pixelId: string;
   capiEnabled: boolean; hasAccessToken: boolean;
-  testEventCode: string | null; trackingMode: TrackingMode;
-  trackingPages: string[]; active: boolean;
+  testEventCode: string | null; active: boolean;
   createdAt: Date; updatedAt: Date;
 };
 
 function toView(p: any): PixelView {
-  const { accessToken, trackingPages, ...rest } = p;
+  const { accessToken, ...rest } = p;
   return {
     ...rest,
     hasAccessToken: Boolean(accessToken),
-    trackingPages: Array.isArray(trackingPages) ? trackingPages : [],
   };
 }
 
@@ -703,8 +716,6 @@ export async function createPixel(shop: string, input: PixelInput): Promise<Pixe
       shop,
       name: input.name.trim(),
       pixelId: input.pixelId.trim(),
-      trackingMode: input.trackingMode,
-      trackingPages: input.trackingPages,
       capiEnabled: input.capiEnabled,
       testEventCode: input.testEventCode ?? null,
       accessToken: input.accessToken ? encrypt(input.accessToken) : null,
@@ -718,8 +729,6 @@ export async function updatePixel(shop: string, id: string, input: Partial<Pixel
   if (!existing) throw new Error("Pixel not found");
   const data: any = {};
   if (input.name !== undefined) data.name = input.name.trim();
-  if (input.trackingMode !== undefined) data.trackingMode = input.trackingMode;
-  if (input.trackingPages !== undefined) data.trackingPages = input.trackingPages;
   if (input.testEventCode !== undefined) data.testEventCode = input.testEventCode;
   if (input.accessToken) data.accessToken = encrypt(input.accessToken);
   if (input.capiEnabled !== undefined) {
@@ -938,7 +947,7 @@ git commit -m "feat: add CAPI event builder and Graph API sender"
 import { json, type LoaderFunctionArgs, type ActionFunctionArgs } from "@remix-run/node";
 import { useLoaderData, useFetcher } from "@remix-run/react";
 import {
-  Page, Card, IndexTable, Badge, Button, TextField, Text,
+  Page, Card, IndexTable, Button, TextField, Text,
   InlineStack, Checkbox, Modal, Frame, Toast, Link as PolarisLink,
 } from "@shopify/polaris";
 import { useEffect, useState } from "react";
@@ -964,8 +973,6 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     return json({ ok: false, error: e.message }, { status: 400 });
   }
 };
-
-const PAGES_LABEL = { ALL: "All pages", SELECTED: "Selected pages", EXCLUDED: "Excluded pages" } as const;
 
 export default function Index() {
   const { pixels } = useLoaderData<typeof loader>();
@@ -1006,7 +1013,7 @@ export default function Index() {
             selectable={false}
             headings={[
               { title: "Active" }, { title: "Pixel ID" }, { title: "Pixel name" },
-              { title: "Pages" }, { title: "Conversion API" }, { title: "Actions" },
+              { title: "Conversion API" }, { title: "Actions" },
             ]}
             emptyState={<div style={{ padding: 32, textAlign: "center" }}>No pixels found</div>}
           >
@@ -1020,7 +1027,6 @@ export default function Index() {
                   <Text as="span" tone="subdued"><code>{p.pixelId}</code></Text>
                 </IndexTable.Cell>
                 <IndexTable.Cell><Text as="span" fontWeight="medium">{p.name}</Text></IndexTable.Cell>
-                <IndexTable.Cell><Badge tone="success">{PAGES_LABEL[p.trackingMode]}</Badge></IndexTable.Cell>
                 <IndexTable.Cell>
                   <Checkbox label="CAPI" labelHidden checked={p.capiEnabled}
                     onChange={(v) => submit({ _action: "toggleCapi", id: p.id, value: String(v) })} />
@@ -1088,7 +1094,7 @@ git commit -m "feat: pixel list screen with active/CAPI toggles and delete"
 // app/components/PixelForm.tsx
 import { Form } from "@remix-run/react";
 import {
-  Card, BlockStack, FormLayout, TextField, ChoiceList, Checkbox, Banner,
+  Card, BlockStack, FormLayout, TextField, Checkbox, Banner,
   Text, InlineStack, Button, Box,
 } from "@shopify/polaris";
 import { useState } from "react";
@@ -1098,7 +1104,6 @@ export function PixelForm({ mode, initial, error }:
   { mode: "new" | "edit"; initial?: PixelView; error?: string }) {
   const [name, setName] = useState(initial?.name ?? "");
   const [pixelId, setPixelId] = useState(initial?.pixelId ?? "");
-  const [trackingMode, setTrackingMode] = useState<string>(initial?.trackingMode ?? "ALL");
   const [capiEnabled, setCapiEnabled] = useState(initial?.capiEnabled ?? false);
   const [accessToken, setAccessToken] = useState("");
   const [testEventCode, setTestEventCode] = useState(initial?.testEventCode ?? "");
@@ -1114,17 +1119,6 @@ export function PixelForm({ mode, initial, error }:
             <TextField label="Pixel ID" name="pixelId" value={pixelId} onChange={setPixelId}
               maxLength={20} showCharacterCount autoComplete="off" requiredIndicator
               disabled={mode === "edit"} helpText={mode === "edit" ? "Pixel ID cannot be changed." : undefined} />
-            <ChoiceList
-              title="Tracking on pages"
-              name="trackingMode"
-              choices={[
-                { label: "All pages", value: "ALL" },
-                { label: "Selected page", value: "SELECTED" },
-                { label: "Excluded page", value: "EXCLUDED" },
-              ]}
-              selected={[trackingMode]}
-              onChange={(v) => setTrackingMode(v[0])}
-            />
           </FormLayout>
         </Card>
 
@@ -1151,7 +1145,6 @@ export function PixelForm({ mode, initial, error }:
               </FormLayout>
             )}
             <input type="hidden" name="capiEnabled" value={String(capiEnabled)} />
-            <input type="hidden" name="trackingMode" value={trackingMode} />
           </BlockStack>
         </Card>
 
@@ -1185,8 +1178,6 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     await createPixel(session.shop, {
       name: String(f.get("name") ?? ""),
       pixelId: String(f.get("pixelId") ?? ""),
-      trackingMode: String(f.get("trackingMode") ?? "ALL") as any,
-      trackingPages: [],
       capiEnabled: f.get("capiEnabled") === "true",
       accessToken: (f.get("accessToken") as string) || undefined,
       testEventCode: (f.get("testEventCode") as string) || null,
@@ -1254,8 +1245,6 @@ export const action = async ({ request, params }: ActionFunctionArgs) => {
   try {
     await updatePixel(session.shop, params.id!, {
       name: String(f.get("name") ?? ""),
-      trackingMode: String(f.get("trackingMode") ?? "ALL") as any,
-      trackingPages: [],
       capiEnabled: f.get("capiEnabled") === "true",
       accessToken: (f.get("accessToken") as string) || undefined,
       testEventCode: (f.get("testEventCode") as string) || null,
@@ -1454,7 +1443,7 @@ git commit -m "feat: add Web Pixel Extension with server CAPI dedup"
 **Spec coverage:**
 - CRUD pixels → Tasks 8, 10, 11, 12. ✓
 - Enable CAPI + encrypted token → Tasks 7, 8, 11/12. ✓
-- Tracking pages All/Selected/Excluded → enum (Task 6), UI ChoiceList (Task 11), badge (Task 10). ✓ (page-picker for SELECTED/EXCLUDED is an Open Item — see spec §7a; `trackingPages` persists as `[]` for now.)
+- Page-level tracking selection → **dropped from scope** (spec §8); no enum, column, or UI. Every active pixel tracks all pages.
 - Toggle active/inactive → Tasks 8, 10. ✓
 - Web Pixel Extension + server CAPI + dedup → Tasks 9, 13, 14. ✓
 - `.claude` tooling (CLAUDE.md, settings.json hooks, 6 commands, 2 skills) → Tasks 1–4. ✓

@@ -4,15 +4,17 @@ Derived from the spec (`docs/superpowers/specs/2026-06-28-facebook-pixel-capi-ap
 and plan (`docs/superpowers/plans/2026-06-28-facebook-pixel-capi-app.md`).
 Role: **merchant** (Shopify store owner using the embedded app).
 
+> Scope note: page-level tracking selection (All/Selected/Excluded) was dropped.
+> Every active pixel tracks all pages.
+
 ---
 
 ## US-1: View pixels
 **As a** merchant, **I want** to see all my Facebook pixels in a list, **so that** I can manage them at a glance.
 
 **Acceptance criteria**
-- Given I open the app, When the list loads, Then I see a table with columns: Active, Pixel ID, Pixel name, Pages, Conversion API, Actions.
+- Given I open the app, When the list loads, Then I see a table with columns: Active, Pixel ID, Pixel name, Conversion API, Actions.
 - Given I have no pixels, When the list loads, Then I see an empty state "No pixels found".
-- Given a pixel exists, Then its Pages column shows a badge: "All pages" / "Selected pages" / "Excluded pages" matching its tracking mode.
 
 ## US-2: Search pixels
 **As a** merchant, **I want** to search by pixel name or ID, **so that** I can find a pixel quickly.
@@ -32,12 +34,12 @@ Role: **merchant** (Shopify store owner using the embedded app).
 - Given a valid form, When I save, Then the pixel is created (active by default) and I return to the list where it appears.
 
 ## US-4: Edit a pixel
-**As a** merchant, **I want** to edit a pixel's name, tracking mode, and CAPI settings, **so that** I can keep it correct.
+**As a** merchant, **I want** to edit a pixel's name and CAPI settings, **so that** I can keep it correct.
 
 **Acceptance criteria**
 - Given I click Edit, Then I see the form titled "Edit Facebook pixel" pre-filled with current values.
 - Given I am editing, Then the Pixel ID field is disabled (immutable) and shows helper text.
-- Given I change the name/tracking/CAPI and save, Then changes persist and I return to the list.
+- Given I change the name/CAPI and save, Then changes persist and I return to the list.
 - Given the pixel already has a stored token, When I leave the token field blank and save, Then the existing token is preserved.
 
 ## US-5: Delete a pixel
@@ -64,22 +66,14 @@ Role: **merchant** (Shopify store owner using the embedded app).
 - Given a token is stored, Then it is encrypted at rest (never stored or returned in plaintext).
 - Given the form, Then I can optionally set a Test event code (≤20 chars) with a warning to remove it after testing.
 
-## US-8: Choose tracking pages
-**As a** merchant, **I want** to choose which pages a pixel tracks (All / Selected / Excluded), **so that** I control coverage.
-
-**Acceptance criteria**
-- Given the form, Then I can pick exactly one of: All pages / Selected page / Excluded page.
-- Given I save a mode, Then the list badge reflects it.
-- (Open item) Given Selected/Excluded, Then a page picker lets me choose specific pages — see `questions.md`; until decided, behaves like All.
-
-## US-9: Browser-side tracking (Web Pixel Extension)
+## US-8: Browser-side tracking (Web Pixel Extension)
 **As a** merchant, **I want** browser events sent to my active pixels, **so that** standard funnel events are captured.
 
 **Acceptance criteria**
 - Given active pixels, When a shopper views a page/product, adds to cart, starts/completes checkout, Then the corresponding standard event (PageView, ViewContent, AddToCart, InitiateCheckout, Purchase) fires to each active pixel.
 - Given a Purchase, Then the browser event carries an `eventID` of `order-<id>` to deduplicate with the server CAPI event.
 
-## US-10: Server-side Purchase via CAPI
+## US-9: Server-side Purchase via CAPI
 **As a** merchant, **I want** purchases sent server-side through CAPI, **so that** conversions are tracked even when the browser is blocked.
 
 **Acceptance criteria**

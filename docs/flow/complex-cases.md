@@ -50,8 +50,8 @@ and keep the template's `Session` model intact.
    - (a) App writes a comma-separated `pixelIds` into the extension settings when
      pixels change (simple, but settings updates need the Admin API), OR
    - (b) Extension fetches active pixels from a public app endpoint at runtime.
-   Recommend (a) for v1; revisit if it proves too slow to propagate.
-5. Honor `active` + `trackingMode` (once the page-picker decision lands).
+   Recommend (a) for v1 (see Q-2 in `questions.md`); revisit if too slow to propagate.
+5. Honor `active` — inactive pixels fire nothing.
 
-**Dependency:** depends on the tracking-pages decision (see `questions.md`) for
-full correctness, but steps 1–3 can proceed independently.
+**Dependency:** none on product decisions; steps 1–3 can proceed independently
+once the scaffold (C-1) exists.

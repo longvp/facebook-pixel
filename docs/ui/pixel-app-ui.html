@@ -281,7 +281,6 @@ tbody tr:hover td { background: var(--p-color-bg-surface-hover); }
                 <th style="width:70px;">Active</th>
                 <th>Pixel ID</th>
                 <th>Pixel name</th>
-                <th>Pages</th>
                 <th style="width:130px;">Conversion API</th>
                 <th style="width:90px;">Actions</th>
               </tr>
@@ -338,20 +337,6 @@ tbody tr:hover td { background: var(--p-color-bg-surface-hover); }
             <div class="char-count"><span id="idCount">0</span>/20</div>
           </div>
 
-          <div class="field">
-            <label class="label">Tracking on pages</label>
-            <div class="radio-group">
-              <label class="radio-item selected" id="radio-all" onclick="selectRadio('all')">
-                <input type="radio" name="pages" value="all" checked> <span class="radio-label">All pages</span>
-              </label>
-              <label class="radio-item" id="radio-selected" onclick="selectRadio('selected')">
-                <input type="radio" name="pages" value="selected"> <span class="radio-label">Selected page</span>
-              </label>
-              <label class="radio-item" id="radio-excluded" onclick="selectRadio('excluded')">
-                <input type="radio" name="pages" value="excluded"> <span class="radio-label">Excluded page</span>
-              </label>
-            </div>
-          </div>
         </div>
 
         <!-- CAPI SECTION -->
@@ -428,7 +413,7 @@ tbody tr:hover td { background: var(--p-color-bg-surface-hover); }
 
 <script>
 let pixels = [
-  { id: '1', pixelId: '1759359908061628', pixelName: '1759359908061628', pages: 'all', isActive: true, capiEnabled: false, accessToken: '' }
+  { id: '1', pixelId: '1759359908061628', pixelName: '1759359908061628', isActive: true, capiEnabled: false, accessToken: '' }
 ];
 let currentPage = 1;
 let filteredPixels = [...pixels];
@@ -443,7 +428,7 @@ function renderTable() {
   const slice = filteredPixels.slice(start, start + size);
   const tbody = document.getElementById('pixelBody');
   if (slice.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--p-color-text-secondary);padding:32px;">No pixels found</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--p-color-text-secondary);padding:32px;">No pixels found</td></tr>';
   } else {
     tbody.innerHTML = slice.map(p => `
       <tr>
@@ -456,11 +441,6 @@ function renderTable() {
         </td>
         <td style="font-family:monospace;font-size:12px;">${p.pixelId}</td>
         <td style="font-weight:500;">${p.pixelName}</td>
-        <td>
-          <span class="badge badge-success">
-            ${p.pages === 'all' ? 'All pages' : p.pages === 'selected' ? 'Selected pages' : 'Excluded pages'}
-          </span>
-        </td>
         <td>
           <label class="toggle">
             <input type="checkbox" ${p.capiEnabled ? 'checked' : ''} onchange="toggleCapi2('${p.id}',this.checked)">
@@ -527,7 +507,6 @@ function showAddForm() {
   document.getElementById('fTestCode').value = '';
   document.getElementById('capiToggle').checked = false;
   document.getElementById('capiBody').classList.remove('open');
-  selectRadio('all');
   updateCharCount('fPixelName','nameCount',255);
   updateCharCount('fPixelId','idCount',20);
   updateCharCount('fTestCode','testCount',20);
@@ -548,7 +527,6 @@ function showEditForm(id) {
   document.getElementById('capiToggle').checked = p.capiEnabled;
   if (p.capiEnabled) document.getElementById('capiBody').classList.add('open');
   else document.getElementById('capiBody').classList.remove('open');
-  selectRadio(p.pages);
   updateCharCount('fPixelName','nameCount',255);
   updateCharCount('fPixelId','idCount',20);
   document.getElementById('listPage').classList.add('hidden');
@@ -563,18 +541,17 @@ function showList() {
 function savePixel() {
   const name = document.getElementById('fPixelName').value.trim();
   const pixelId = document.getElementById('fPixelId').value.trim();
-  const pages = document.querySelector('input[name="pages"]:checked')?.value || 'all';
   const capiEnabled = document.getElementById('capiToggle').checked;
   const accessToken = document.getElementById('fAccessToken').value.trim();
   if (!name || !pixelId) { showToast('Please fill in required fields', 'warning'); return; }
   if (editingId) {
     const p = pixels.find(x => x.id === editingId);
-    if (p) { p.pixelName = name; p.pages = pages; p.capiEnabled = capiEnabled; p.accessToken = accessToken; }
+    if (p) { p.pixelName = name; p.capiEnabled = capiEnabled; p.accessToken = accessToken; }
     showToast('Pixel updated');
   } else {
     const exists = pixels.find(x => x.pixelId === pixelId);
     if (exists) { showToast('Pixel ID already exists', 'warning'); return; }
-    pixels.push({ id: Date.now().toString(), pixelId, pixelName: name, pages, isActive: true, capiEnabled, accessToken });
+    pixels.push({ id: Date.now().toString(), pixelId, pixelName: name, isActive: true, capiEnabled, accessToken });
     showToast('Pixel added');
   }
   filteredPixels = [...pixels];
@@ -603,15 +580,6 @@ function confirmDelete() {
 function toggleCapi(val) {
   if (val) document.getElementById('capiBody').classList.add('open');
   else document.getElementById('capiBody').classList.remove('open');
-}
-
-function selectRadio(val) {
-  ['all','selected','excluded'].forEach(v => {
-    const el = document.getElementById('radio-' + v);
-    if (el) el.classList.toggle('selected', v === val);
-  });
-  const radio = document.querySelector(`input[name="pages"][value="${val}"]`);
-  if (radio) radio.checked = true;
 }
 
 function updateCharCount(inputId, countId, max) {

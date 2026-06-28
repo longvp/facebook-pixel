@@ -3,28 +3,12 @@
 Items classified **discuss**: blocked on a product/technical decision. Resolve
 before they block the tasks listed. Current stub keeps everything compiling.
 
----
-
-## Q-1: Page picker for Selected / Excluded tracking modes
-**Blocks:** US-8; full correctness of T8 (model), T10–T12 (UI), T14 (extension).
-**Current stub:** `trackingPages` persists as `[]`; SELECTED/EXCLUDED behave like ALL.
-
-**Question:** How does the merchant choose which pages a pixel tracks/excludes?
-
-**Options**
-- **A. Page-type checklist** — fixed set: Home, Product, Collection, Cart,
-  Checkout, Search, Blog, Other. Simplest; no data fetch. *(Recommended for v1.)*
-- **B. Specific URLs/handles** — free-text or autocomplete of actual store pages
-  (needs Admin API to list pages/products). Most precise; more work.
-- **C. URL path patterns** — merchant enters glob/regex paths (e.g. `/products/*`).
-  Flexible but error-prone for non-technical merchants.
-
-**Recommendation:** A for v1, with the data stored as a string[] of page-type keys
-so we can migrate to B later without a schema change.
+> Resolved/removed: the page-picker question (former Q-1) is gone — page-level
+> tracking selection was dropped from scope. Every active pixel tracks all pages.
 
 ---
 
-## Q-2: Test event code — persist or transient?
+## Q-1: Test event code — persist or transient?
 **Blocks:** US-7 detail; behavior of T8/T11/T12 around `testEventCode`.
 **Current state:** model has a `testEventCode` column; the mockup clears it on edit.
 
@@ -44,7 +28,7 @@ decided, the form writes whatever is entered (matches current plan).
 
 ---
 
-## Q-3 (from C-2): Web Pixel active-pixel delivery
+## Q-2 (from C-2): Web Pixel active-pixel delivery
 **Blocks:** T14 correctness.
 **Question:** How do active pixel IDs reach the sandboxed extension?
 
