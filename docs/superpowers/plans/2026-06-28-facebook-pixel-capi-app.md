@@ -136,7 +136,7 @@ git commit -m "docs: add CLAUDE.md project guide"
         "hooks": [
           {
             "type": "command",
-            "command": "f=\"$CLAUDE_FILE_PATH\"; case \"$f\" in *.ts|*.tsx) npx prettier --write \"$f\" >/dev/null 2>&1 ;; esac"
+            "command": "node -e \"let s='';process.stdin.on('data',d=>s+=d).on('end',()=>{try{const f=(JSON.parse(s).tool_input||{}).file_path||'';if(/\\.(ts|tsx)$/.test(f)){require('child_process').execSync('npx prettier --write \\\"'+f+'\\\"',{stdio:'ignore'});}}catch(e){}})\""
           }
         ]
       }
