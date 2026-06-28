@@ -1,0 +1,635 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Facebook Pixel & CAPI — Shopify App</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+<style>
+:root {
+  --p-color-bg: #f1f1f1;
+  --p-color-bg-surface: #ffffff;
+  --p-color-bg-surface-secondary: #f7f7f7;
+  --p-color-bg-surface-hover: #f7f7f7;
+  --p-color-text: #303030;
+  --p-color-text-secondary: #616161;
+  --p-color-text-disabled: #b5b5b5;
+  --p-color-text-inverse: #ffffff;
+  --p-color-text-link: #005bd3;
+  --p-color-text-success: #0c5132;
+  --p-color-text-warning: #b15c00;
+  --p-color-text-critical: #c4271a;
+  --p-color-border: #e1e1e1;
+  --p-color-border-secondary: #ebebeb;
+  --p-color-border-focus: #005bd3;
+  --p-color-bg-primary: #303030;
+  --p-color-bg-primary-hover: #1a1a1a;
+  --p-color-bg-success: #cdfee1;
+  --p-color-bg-warning: #ffd6a4;
+  --p-color-bg-critical: #fee9e8;
+  --p-color-bg-info: #ebf9ff;
+  --p-radius-100: 4px;
+  --p-radius-200: 6px;
+  --p-radius-300: 8px;
+  --p-radius-400: 12px;
+  --p-shadow-card: 0 0 0 1px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
+  --p-shadow-card-hover: 0 0 0 1px rgba(0,0,0,0.08), 0 2px 6px rgba(0,0,0,0.06);
+  --p-shadow-button: 0 1px 0 rgba(0,0,0,0.05), inset 0 -1px 0 rgba(0,0,0,0.2);
+  --p-shadow-button-primary: 0 1px 0 rgba(0,0,0,0.2), inset 0 1px 0 rgba(255,255,255,0.15), inset 0 -1px 0 rgba(0,0,0,0.2);
+  --p-shadow-modal: 0 26px 80px rgba(0,0,0,0.2), 0 0 0 1px rgba(0,0,0,0.06);
+  --p-motion-fast: 120ms;
+  --p-motion-base: 180ms;
+  --p-easing-default: cubic-bezier(0.25, 0.1, 0.25, 1);
+  --p-easing-spring: cubic-bezier(0.34, 1.3, 0.5, 1);
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'Inter', -apple-system, sans-serif; font-size: 14px; line-height: 1.4; color: var(--p-color-text); background: var(--p-color-bg); -webkit-font-smoothing: antialiased; font-feature-settings: 'cv11','ss01','ss03'; }
+td, th { font-variant-numeric: tabular-nums; }
+
+/* SHELL */
+.shell { display: grid; grid-template-rows: 56px 1fr; height: 100vh; overflow: hidden; }
+.topbar { display: flex; align-items: center; gap: 16px; padding: 0 16px; background: #1a1a1a; color: #fff; border-bottom: 1px solid #000; }
+.topbar-logo { display: flex; align-items: center; gap: 8px; font-weight: 600; font-size: 14px; color: #fff; }
+.topbar-search { flex: 1; max-width: 480px; margin: 0 auto; background: #303030; border: 1px solid #3f3f3f; border-radius: 8px; padding: 6px 12px; color: #fff; font-size: 13px; display: flex; align-items: center; gap: 8px; }
+.topbar-search input { background: transparent; border: none; outline: none; color: #fff; flex: 1; font-family: inherit; font-size: 13px; }
+.topbar-search input::placeholder { color: #999; }
+.topbar-actions { display: flex; align-items: center; gap: 8px; }
+.topbar-icon-btn { width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; background: transparent; border: none; color: #ccc; cursor: pointer; }
+.topbar-icon-btn:hover { background: #303030; color: #fff; }
+.topbar-shop { display: flex; align-items: center; gap: 8px; padding: 4px 8px 4px 4px; background: #303030; border-radius: 8px; cursor: pointer; }
+.topbar-shop-avatar { width: 24px; height: 24px; border-radius: 6px; background: linear-gradient(135deg, #5e8aff, #c478ff); display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 600; color: #fff; }
+.topbar-shop-name { font-size: 13px; font-weight: 500; }
+.body { display: grid; grid-template-columns: 240px 1fr; overflow: hidden; }
+.sidebar { background: #ebebeb; padding: 12px; overflow-y: auto; border-right: 1px solid #d4d4d4; }
+.nav-item { display: flex; align-items: center; gap: 10px; padding: 6px 10px; border-radius: 8px; font-size: 13px; font-weight: 500; cursor: pointer; transition: background var(--p-motion-fast); }
+.nav-item:hover { background: rgba(0,0,0,0.06); }
+.nav-item svg { width: 16px; height: 16px; opacity: 0.7; }
+.nav-section { font-size: 11px; font-weight: 600; color: var(--p-color-text-secondary); text-transform: uppercase; letter-spacing: 0.5px; padding: 16px 10px 6px; }
+.nav-subitem { padding: 6px 10px 6px 36px; font-size: 13px; border-radius: 8px; cursor: pointer; color: var(--p-color-text); }
+.nav-subitem:hover { background: rgba(0,0,0,0.06); }
+.nav-subitem.active { background: rgba(0,0,0,0.1); font-weight: 600; }
+.nav-app { display: flex; align-items: center; gap: 8px; padding: 6px 10px; border-radius: 8px; font-size: 13px; font-weight: 500; cursor: pointer; }
+.nav-app:hover { background: rgba(0,0,0,0.06); }
+.app-logo-mark { width: 20px; height: 20px; border-radius: 6px; background: linear-gradient(135deg, #1877f2, #0a5cc7); display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 700; color: #fff; flex-shrink: 0; }
+.content { background: var(--p-color-bg); overflow-y: auto; padding: 24px 32px 80px; }
+.page { max-width: 998px; margin: 0 auto; }
+
+/* PAGE HEADER */
+.page-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; margin-bottom: 20px; }
+.page-breadcrumb { display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--p-color-text-secondary); margin-bottom: 4px; cursor: pointer; }
+.page-breadcrumb:hover { color: var(--p-color-text-link); }
+.page-title { font-size: 22px; font-weight: 600; letter-spacing: -0.02em; }
+
+/* BUTTONS */
+.btn { display: inline-flex; align-items: center; gap: 6px; border: none; border-radius: var(--p-radius-200); padding: 7px 14px; font-family: inherit; font-size: 13px; font-weight: 500; cursor: pointer; transition: background var(--p-motion-fast), transform 80ms; }
+.btn svg { width: 14px; height: 14px; }
+.btn-primary { background: var(--p-color-bg-primary); color: #fff; box-shadow: var(--p-shadow-button-primary); }
+.btn-primary:hover { background: var(--p-color-bg-primary-hover); }
+.btn-primary:active { transform: translateY(1px); }
+.btn-secondary { background: var(--p-color-bg-surface); color: var(--p-color-text); box-shadow: var(--p-shadow-button); }
+.btn-secondary:hover { background: var(--p-color-bg-surface-secondary); }
+.btn-icon { width: 32px; height: 32px; padding: 0; display: inline-flex; align-items: center; justify-content: center; border-radius: var(--p-radius-200); background: transparent; border: none; cursor: pointer; color: var(--p-color-text-secondary); transition: background var(--p-motion-fast), color var(--p-motion-fast); }
+.btn-icon:hover { background: var(--p-color-bg-surface-secondary); color: var(--p-color-text); }
+.btn-icon-danger:hover { background: var(--p-color-bg-critical); color: var(--p-color-text-critical); }
+.btn-icon svg { width: 16px; height: 16px; }
+
+/* CARD */
+.card { background: var(--p-color-bg-surface); border-radius: var(--p-radius-400); box-shadow: var(--p-shadow-card); margin-bottom: 16px; overflow: hidden; }
+
+/* SEARCH BAR */
+.toolbar { display: flex; align-items: center; gap: 10px; padding: 14px 16px; border-bottom: 1px solid var(--p-color-border-secondary); }
+.search-wrap { position: relative; flex: 1; max-width: 380px; }
+.search-wrap svg { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); width: 14px; height: 14px; color: var(--p-color-text-secondary); pointer-events: none; }
+.search-input { width: 100%; background: var(--p-color-bg-surface-secondary); border: 1px solid var(--p-color-border); border-radius: var(--p-radius-100); padding: 7px 12px 7px 32px; font-family: inherit; font-size: 13px; color: var(--p-color-text); transition: border-color var(--p-motion-fast), box-shadow var(--p-motion-fast); }
+.search-input:focus { outline: none; border-color: var(--p-color-border-focus); box-shadow: 0 0 0 2px rgba(0,91,211,0.2); background: #fff; }
+.search-input::placeholder { color: var(--p-color-text-disabled); }
+
+/* TABLE */
+table { width: 100%; border-collapse: collapse; font-size: 13px; }
+thead { background: var(--p-color-bg-surface-secondary); }
+th { text-align: left; font-weight: 500; color: var(--p-color-text-secondary); font-size: 12px; padding: 10px 16px; border-bottom: 1px solid var(--p-color-border-secondary); white-space: nowrap; }
+td { padding: 14px 16px; border-bottom: 1px solid var(--p-color-border-secondary); vertical-align: middle; }
+tr:last-child td { border-bottom: none; }
+tbody tr { transition: background var(--p-motion-fast); }
+tbody tr:hover td { background: var(--p-color-bg-surface-hover); }
+
+/* BADGE */
+.badge { display: inline-flex; align-items: center; gap: 5px; padding: 3px 8px; border-radius: var(--p-radius-100); font-size: 12px; font-weight: 500; }
+.badge::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: currentColor; opacity: 0.7; flex-shrink: 0; }
+.badge-success { background: var(--p-color-bg-success); color: var(--p-color-text-success); }
+.badge-neutral { background: var(--p-color-bg-surface-secondary); color: var(--p-color-text-secondary); }
+
+/* TOGGLE */
+.toggle-wrap { display: flex; align-items: center; }
+.toggle { position: relative; width: 36px; height: 20px; cursor: pointer; }
+.toggle input { opacity: 0; width: 0; height: 0; position: absolute; }
+.toggle-track { position: absolute; inset: 0; border-radius: 10px; background: #d1d1d1; transition: background var(--p-motion-fast); }
+.toggle input:checked + .toggle-track { background: #1c9862; }
+.toggle-thumb { position: absolute; top: 2px; left: 2px; width: 16px; height: 16px; border-radius: 50%; background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,0.2); transition: transform var(--p-motion-fast) var(--p-easing-spring); }
+.toggle input:checked ~ .toggle-thumb { transform: translateX(16px); }
+
+/* PAGINATION */
+.pagination { display: flex; align-items: center; justify-content: center; gap: 8px; padding: 14px 16px; border-top: 1px solid var(--p-color-border-secondary); }
+.page-size-select { border: 1px solid var(--p-color-border); border-radius: var(--p-radius-100); padding: 4px 8px; font-family: inherit; font-size: 12px; color: var(--p-color-text); background: var(--p-color-bg-surface); cursor: pointer; }
+.page-info { font-size: 12px; color: var(--p-color-text-secondary); margin: 0 4px; }
+.btn-page { width: 28px; height: 28px; border-radius: var(--p-radius-100); border: 1px solid var(--p-color-border); background: var(--p-color-bg-surface); display: flex; align-items: center; justify-content: center; cursor: pointer; color: var(--p-color-text-secondary); }
+.btn-page:hover { background: var(--p-color-bg-surface-secondary); }
+.btn-page:disabled { opacity: 0.4; cursor: not-allowed; }
+.btn-page svg { width: 14px; height: 14px; }
+
+/* FOOTER NOTE */
+.footer-note { text-align: center; padding: 16px; font-size: 13px; color: var(--p-color-text-secondary); }
+.footer-note a { color: var(--p-color-text-link); text-decoration: none; }
+.footer-note a:hover { text-decoration: underline; }
+
+/* MODAL */
+.modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 100; opacity: 0; pointer-events: none; transition: opacity var(--p-motion-base); }
+.modal-overlay.open { opacity: 1; pointer-events: all; }
+.modal { background: #fff; border-radius: var(--p-radius-400); box-shadow: var(--p-shadow-modal); width: 460px; max-width: calc(100vw - 32px); padding: 24px; transform: scale(0.96); transition: transform var(--p-motion-base) var(--p-easing-spring); }
+.modal-overlay.open .modal { transform: scale(1); }
+.modal-title { font-size: 16px; font-weight: 600; margin-bottom: 8px; }
+.modal-body { font-size: 14px; color: var(--p-color-text-secondary); margin-bottom: 20px; line-height: 1.5; }
+.modal-actions { display: flex; justify-content: flex-end; gap: 8px; }
+.btn-destructive { background: #c4271a; color: #fff; box-shadow: var(--p-shadow-button-primary); }
+.btn-destructive:hover { background: #a31f14; }
+
+/* TOAST */
+.toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(80px); background: #303030; color: #fff; padding: 10px 20px; border-radius: var(--p-radius-300); font-size: 13px; font-weight: 500; z-index: 200; transition: transform var(--p-motion-slow) var(--p-easing-spring), opacity var(--p-motion-slow); opacity: 0; }
+.toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
+
+/* EDIT FORM */
+.edit-page { display: none; }
+.edit-page.active { display: block; }
+.list-page { display: block; }
+.list-page.hidden { display: none; }
+
+.form-card { background: var(--p-color-bg-surface); border-radius: var(--p-radius-400); box-shadow: var(--p-shadow-card); padding: 20px; margin-bottom: 16px; }
+.form-card-title { font-size: 14px; font-weight: 600; margin-bottom: 4px; }
+.form-card-subtitle { font-size: 13px; color: var(--p-color-text-secondary); margin-bottom: 16px; }
+.field { margin-bottom: 14px; }
+.label { display: flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 500; margin-bottom: 4px; }
+.label-required { color: #c4271a; }
+.label-link { font-size: 12px; color: var(--p-color-text-link); font-weight: 400; cursor: pointer; text-decoration: none; margin-left: auto; }
+.label-link:hover { text-decoration: underline; }
+.input { width: 100%; background: var(--p-color-bg-surface); border: 1px solid var(--p-color-border); border-radius: var(--p-radius-100); padding: 8px 12px; font-family: inherit; font-size: 14px; color: var(--p-color-text); transition: border-color var(--p-motion-fast), box-shadow var(--p-motion-fast); }
+.input:hover { border-color: #b5b5b5; }
+.input:focus { outline: none; border-color: var(--p-color-border-focus); box-shadow: 0 0 0 2px rgba(0,91,211,0.2); }
+.input:disabled { background: var(--p-color-bg-surface-secondary); color: var(--p-color-text-disabled); cursor: not-allowed; }
+.input-hint { font-size: 12px; color: var(--p-color-text-secondary); margin-top: 4px; }
+.char-count { text-align: right; font-size: 11px; color: var(--p-color-text-disabled); margin-top: 2px; }
+.radio-group { display: flex; flex-direction: column; gap: 10px; }
+.radio-item { display: flex; align-items: center; gap: 10px; cursor: pointer; padding: 10px 12px; border-radius: var(--p-radius-100); border: 1px solid var(--p-color-border); transition: border-color var(--p-motion-fast), background var(--p-motion-fast); }
+.radio-item:hover { border-color: #b5b5b5; background: var(--p-color-bg-surface-secondary); }
+.radio-item.selected { border-color: var(--p-color-border-focus); background: #f0f6ff; }
+.radio-item input[type="radio"] { accent-color: var(--p-color-border-focus); width: 16px; height: 16px; cursor: pointer; }
+.radio-label { font-size: 13px; font-weight: 500; }
+
+/* CAPI SECTION */
+.capi-section { border: 1px solid var(--p-color-border); border-radius: var(--p-radius-300); overflow: hidden; }
+.capi-header { display: flex; align-items: center; justify-content: space-between; padding: 14px 16px; background: var(--p-color-bg-surface); }
+.capi-header-left { display: flex; align-items: center; gap: 12px; }
+.capi-icon { width: 36px; height: 36px; border-radius: 8px; background: linear-gradient(135deg, #1877f2, #0a5cc7); display: flex; align-items: center; justify-content: center; }
+.capi-icon svg { width: 18px; height: 18px; color: #fff; }
+.capi-title { font-size: 13px; font-weight: 600; }
+.capi-subtitle { font-size: 12px; color: var(--p-color-text-secondary); }
+.badge-recommended { display: inline-flex; align-items: center; padding: 2px 8px; border-radius: var(--p-radius-full); font-size: 11px; font-weight: 500; background: var(--p-color-bg-success); color: var(--p-color-text-success); margin-left: 8px; }
+.capi-body { padding: 16px; border-top: 1px solid var(--p-color-border-secondary); background: var(--p-color-bg-surface-secondary); display: none; }
+.capi-body.open { display: block; }
+.warning-banner { display: flex; align-items: flex-start; gap: 10px; padding: 10px 12px; background: #fff8ed; border: 1px solid #ffd6a4; border-radius: var(--p-radius-100); margin-top: 12px; font-size: 12px; color: var(--p-color-text-warning); }
+.warning-banner svg { width: 14px; height: 14px; flex-shrink: 0; margin-top: 1px; }
+
+/* FORM ACTIONS */
+.form-actions { display: flex; align-items: center; justify-content: flex-end; gap: 8px; padding: 16px 20px; background: var(--p-color-bg-surface); border-radius: var(--p-radius-400); box-shadow: var(--p-shadow-card); }
+</style>
+</head>
+<body>
+<div class="shell">
+  <!-- TOP BAR -->
+  <div class="topbar">
+    <div class="topbar-logo">
+      <svg viewBox="0 0 24 24" fill="#95BF47" width="22" height="22"><path d="M15.337 3.518c-.07-.05-.155-.077-.241-.077-.07 0-3.71.108-3.71.108s-2.452 2.378-2.726 2.652c-.274.275-.808.193-.99.139-.027-.005-1.04-.323-1.04-.323-.99 1.05-2.93 3.099-3.06 3.244-.123.14-.18.198-.21.327L0 24h17.45l-2.05-19.95s-.013-.453-.063-.532zM10.94 6.297c-.7.215-1.466.452-2.234.69.215-.83.626-1.658 1.124-2.205.183-.198.45-.418.766-.546.296.616.345 1.488.344 2.061zm-1.49-2.901c.246 0 .462.054.642.16-.295.154-.582.376-.847.66-.665.717-1.176 1.831-1.38 2.905-.638.197-1.262.39-1.834.566.358-1.682 1.769-4.27 3.418-4.291z"/></svg>
+      Shopify
+    </div>
+    <div class="topbar-search">
+      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#999" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+      <input placeholder="Search">
+    </div>
+    <div class="topbar-actions">
+      <button class="topbar-icon-btn">
+        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+      </button>
+      <div class="topbar-shop">
+        <div class="topbar-shop-avatar">T</div>
+        <div class="topbar-shop-name">Thuyet Tester 12</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="body">
+    <!-- SIDEBAR -->
+    <div class="sidebar">
+      <div class="nav-item"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg> Home</div>
+      <div class="nav-item"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg> Orders <span style="margin-left:auto;background:#e1e1e1;border-radius:10px;padding:1px 7px;font-size:11px;font-weight:600;">270</span></div>
+      <div class="nav-item"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg> Products</div>
+      <div class="nav-item"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg> Customers</div>
+      <div class="nav-section">Sales channels</div>
+      <div class="nav-item"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg> Online Store</div>
+      <div class="nav-section">Apps</div>
+      <div class="nav-app" style="font-weight:600;">
+        <div class="app-logo-mark">Ω</div>
+        Omega Facebook Pixel
+      </div>
+      <div class="nav-subitem active">Facebook Pixel & CAPI</div>
+      <div class="nav-subitem">Catalog</div>
+      <div class="nav-subitem">Feed</div>
+      <div class="nav-subitem">Pixel Analytics</div>
+      <div class="nav-subitem">Ads Report</div>
+    </div>
+
+    <!-- CONTENT -->
+    <div class="content">
+      <!-- LIST PAGE -->
+      <div class="page list-page" id="listPage">
+        <div class="page-header">
+          <div>
+            <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;">
+              <div class="app-logo-mark" style="width:24px;height:24px;font-size:12px;">Ω</div>
+              <span style="font-size:14px;color:var(--p-color-text-secondary);">Facebook Pixel & CAPI</span>
+            </div>
+            <h1 class="page-title">Facebook Pixel & CAPI</h1>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="toolbar">
+            <div class="search-wrap">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+              <input class="search-input" placeholder="Search by pixel name, pixel ID" id="searchInput" oninput="filterPixels(this.value)">
+            </div>
+            <div style="margin-left:auto;">
+              <button class="btn btn-primary" onclick="showAddForm()">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                Add pixel
+              </button>
+            </div>
+          </div>
+
+          <table id="pixelTable">
+            <thead>
+              <tr>
+                <th style="width:70px;">Active</th>
+                <th>Pixel ID</th>
+                <th>Pixel name</th>
+                <th>Pages</th>
+                <th style="width:130px;">Conversion API</th>
+                <th style="width:90px;">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="pixelBody"></tbody>
+          </table>
+
+          <div class="pagination">
+            <select class="page-size-select" id="pageSize" onchange="renderTable()">
+              <option value="5">5</option>
+              <option value="10">10</option>
+              <option value="20">20</option>
+            </select>
+            <button class="btn-page" id="prevBtn" onclick="changePage(-1)">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
+            </button>
+            <span class="page-info" id="pageInfo">1/1</span>
+            <button class="btn-page" id="nextBtn" onclick="changePage(1)">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+            </button>
+          </div>
+
+          <div class="footer-note">
+            For more guidance, visit our <a href="#">knowledge base</a> or <a href="#">request support</a>
+          </div>
+        </div>
+      </div>
+
+      <!-- EDIT / ADD PAGE -->
+      <div class="page edit-page" id="editPage">
+        <div class="page-header">
+          <div>
+            <div class="page-breadcrumb" onclick="showList()">
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
+              Facebook Pixel & CAPI
+            </div>
+            <h1 class="page-title" id="formTitle">Edit Facebook pixel</h1>
+          </div>
+        </div>
+
+        <div class="form-card">
+          <div class="field">
+            <label class="label">Pixel name <span class="label-required">*</span></label>
+            <input class="input" type="text" id="fPixelName" placeholder="My Facebook Pixel" oninput="updateCharCount('fPixelName','nameCount',255)">
+            <div class="char-count"><span id="nameCount">0</span>/255</div>
+          </div>
+
+          <div class="field">
+            <label class="label">
+              Pixel ID <span class="label-required">*</span>
+              <a class="label-link" href="#" id="pixelIdLink">How I get it?</a>
+            </label>
+            <input class="input" type="text" id="fPixelId" placeholder="Pixel ID" oninput="updateCharCount('fPixelId','idCount',20)">
+            <div class="char-count"><span id="idCount">0</span>/20</div>
+          </div>
+
+          <div class="field">
+            <label class="label">Tracking on pages</label>
+            <div class="radio-group">
+              <label class="radio-item selected" id="radio-all" onclick="selectRadio('all')">
+                <input type="radio" name="pages" value="all" checked> <span class="radio-label">All pages</span>
+              </label>
+              <label class="radio-item" id="radio-selected" onclick="selectRadio('selected')">
+                <input type="radio" name="pages" value="selected"> <span class="radio-label">Selected page</span>
+              </label>
+              <label class="radio-item" id="radio-excluded" onclick="selectRadio('excluded')">
+                <input type="radio" name="pages" value="excluded"> <span class="radio-label">Excluded page</span>
+              </label>
+            </div>
+          </div>
+        </div>
+
+        <!-- CAPI SECTION -->
+        <div class="form-card" style="padding:0;">
+          <div class="capi-section">
+            <div class="capi-header">
+              <div class="capi-header-left">
+                <div class="capi-icon">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.84 12a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.77 1h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 8.75a16 16 0 0 0 6.29 6.29l1.07-1.07a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+                </div>
+                <div>
+                  <div class="capi-title">
+                    Conversions API (solution for iOS 14.5)
+                    <span class="badge-recommended">Recommended</span>
+                  </div>
+                  <div class="capi-subtitle">Enable server-side API to track all customer behavior events bypassing the browser's limitation, or ad-blockers.</div>
+                </div>
+              </div>
+              <label class="toggle" style="flex-shrink:0;">
+                <input type="checkbox" id="capiToggle" onchange="toggleCapi(this.checked)">
+                <div class="toggle-track"></div>
+                <div class="toggle-thumb"></div>
+              </label>
+            </div>
+
+            <div class="capi-body" id="capiBody">
+              <div class="field">
+                <label class="label">
+                  Facebook access token
+                  <span style="font-size:12px;color:var(--p-color-text-secondary);cursor:help;" title="System User Token with ads_management permission">ⓘ</span>
+                </label>
+                <input class="input" type="password" id="fAccessToken" placeholder="Enter your Facebook access token">
+                <div class="input-hint">Requires System User Token with ads_management and ads_read permissions.</div>
+              </div>
+              <div class="field" style="margin-bottom:0;">
+                <label class="label">
+                  Test event code
+                  <span style="font-size:12px;color:var(--p-color-text-secondary);cursor:help;" title="Use for testing CAPI events">ⓘ</span>
+                </label>
+                <input class="input" type="text" id="fTestCode" placeholder="TEST12345" oninput="updateCharCount('fTestCode','testCount',20)">
+                <div class="char-count"><span id="testCount">0</span>/20</div>
+                <div class="warning-banner">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                  Use this if you need to test the server-side event. Remove it after testing.
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="form-actions">
+          <button class="btn btn-secondary" onclick="showList()">Discard</button>
+          <button class="btn btn-primary" onclick="savePixel()">Save pixel</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- DELETE MODAL -->
+<div class="modal-overlay" id="deleteModal">
+  <div class="modal">
+    <div class="modal-title">Delete pixel?</div>
+    <div class="modal-body">This pixel will be permanently removed and tracking will stop immediately. This action cannot be undone.</div>
+    <div class="modal-actions">
+      <button class="btn btn-secondary" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-destructive" onclick="confirmDelete()">Delete pixel</button>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<script>
+let pixels = [
+  { id: '1', pixelId: '1759359908061628', pixelName: '1759359908061628', pages: 'all', isActive: true, capiEnabled: false, accessToken: '' }
+];
+let currentPage = 1;
+let filteredPixels = [...pixels];
+let editingId = null;
+let deletingId = null;
+
+function renderTable() {
+  const size = parseInt(document.getElementById('pageSize').value);
+  const total = Math.ceil(filteredPixels.length / size);
+  if (currentPage > total) currentPage = Math.max(1, total);
+  const start = (currentPage - 1) * size;
+  const slice = filteredPixels.slice(start, start + size);
+  const tbody = document.getElementById('pixelBody');
+  if (slice.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--p-color-text-secondary);padding:32px;">No pixels found</td></tr>';
+  } else {
+    tbody.innerHTML = slice.map(p => `
+      <tr>
+        <td>
+          <label class="toggle">
+            <input type="checkbox" ${p.isActive ? 'checked' : ''} onchange="toggleActive('${p.id}',this.checked)">
+            <div class="toggle-track"></div>
+            <div class="toggle-thumb"></div>
+          </label>
+        </td>
+        <td style="font-family:monospace;font-size:12px;">${p.pixelId}</td>
+        <td style="font-weight:500;">${p.pixelName}</td>
+        <td>
+          <span class="badge badge-success">
+            ${p.pages === 'all' ? 'All pages' : p.pages === 'selected' ? 'Selected pages' : 'Excluded pages'}
+          </span>
+        </td>
+        <td>
+          <label class="toggle">
+            <input type="checkbox" ${p.capiEnabled ? 'checked' : ''} onchange="toggleCapi2('${p.id}',this.checked)">
+            <div class="toggle-track"></div>
+            <div class="toggle-thumb"></div>
+          </label>
+        </td>
+        <td>
+          <div style="display:flex;gap:4px;">
+            <button class="btn-icon" onclick="showEditForm('${p.id}')" title="Edit">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+            </button>
+            <button class="btn-icon btn-icon-danger" onclick="openDeleteModal('${p.id}')" title="Delete">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
+            </button>
+          </div>
+        </td>
+      </tr>
+    `).join('');
+  }
+  document.getElementById('pageInfo').textContent = total > 0 ? `${currentPage}/${total}` : '0/0';
+  document.getElementById('prevBtn').disabled = currentPage <= 1;
+  document.getElementById('nextBtn').disabled = currentPage >= total;
+}
+
+function filterPixels(q) {
+  filteredPixels = pixels.filter(p =>
+    p.pixelName.toLowerCase().includes(q.toLowerCase()) ||
+    p.pixelId.includes(q)
+  );
+  currentPage = 1;
+  renderTable();
+}
+
+function changePage(dir) {
+  const size = parseInt(document.getElementById('pageSize').value);
+  const total = Math.ceil(filteredPixels.length / size);
+  currentPage = Math.max(1, Math.min(total, currentPage + dir));
+  renderTable();
+}
+
+function toggleActive(id, val) {
+  const p = pixels.find(x => x.id === id);
+  if (p) { p.isActive = val; showToast(val ? 'Pixel activated' : 'Pixel deactivated'); }
+}
+
+function toggleCapi2(id, val) {
+  const p = pixels.find(x => x.id === id);
+  if (p) {
+    if (val && !p.accessToken) { showToast('Add access token to enable CAPI', 'warning'); return; }
+    p.capiEnabled = val;
+    showToast(val ? 'CAPI enabled' : 'CAPI disabled');
+  }
+  renderTable();
+}
+
+function showAddForm() {
+  editingId = null;
+  document.getElementById('formTitle').textContent = 'Add Facebook pixel';
+  document.getElementById('fPixelName').value = '';
+  document.getElementById('fPixelId').value = '';
+  document.getElementById('fPixelId').disabled = false;
+  document.getElementById('fAccessToken').value = '';
+  document.getElementById('fTestCode').value = '';
+  document.getElementById('capiToggle').checked = false;
+  document.getElementById('capiBody').classList.remove('open');
+  selectRadio('all');
+  updateCharCount('fPixelName','nameCount',255);
+  updateCharCount('fPixelId','idCount',20);
+  updateCharCount('fTestCode','testCount',20);
+  document.getElementById('listPage').classList.add('hidden');
+  document.getElementById('editPage').classList.add('active');
+}
+
+function showEditForm(id) {
+  const p = pixels.find(x => x.id === id);
+  if (!p) return;
+  editingId = id;
+  document.getElementById('formTitle').textContent = 'Edit Facebook pixel';
+  document.getElementById('fPixelName').value = p.pixelName;
+  document.getElementById('fPixelId').value = p.pixelId;
+  document.getElementById('fPixelId').disabled = true;
+  document.getElementById('fAccessToken').value = p.accessToken || '';
+  document.getElementById('fTestCode').value = '';
+  document.getElementById('capiToggle').checked = p.capiEnabled;
+  if (p.capiEnabled) document.getElementById('capiBody').classList.add('open');
+  else document.getElementById('capiBody').classList.remove('open');
+  selectRadio(p.pages);
+  updateCharCount('fPixelName','nameCount',255);
+  updateCharCount('fPixelId','idCount',20);
+  document.getElementById('listPage').classList.add('hidden');
+  document.getElementById('editPage').classList.add('active');
+}
+
+function showList() {
+  document.getElementById('editPage').classList.remove('active');
+  document.getElementById('listPage').classList.remove('hidden');
+}
+
+function savePixel() {
+  const name = document.getElementById('fPixelName').value.trim();
+  const pixelId = document.getElementById('fPixelId').value.trim();
+  const pages = document.querySelector('input[name="pages"]:checked')?.value || 'all';
+  const capiEnabled = document.getElementById('capiToggle').checked;
+  const accessToken = document.getElementById('fAccessToken').value.trim();
+  if (!name || !pixelId) { showToast('Please fill in required fields', 'warning'); return; }
+  if (editingId) {
+    const p = pixels.find(x => x.id === editingId);
+    if (p) { p.pixelName = name; p.pages = pages; p.capiEnabled = capiEnabled; p.accessToken = accessToken; }
+    showToast('Pixel updated');
+  } else {
+    const exists = pixels.find(x => x.pixelId === pixelId);
+    if (exists) { showToast('Pixel ID already exists', 'warning'); return; }
+    pixels.push({ id: Date.now().toString(), pixelId, pixelName: name, pages, isActive: true, capiEnabled, accessToken });
+    showToast('Pixel added');
+  }
+  filteredPixels = [...pixels];
+  renderTable();
+  showList();
+}
+
+function openDeleteModal(id) {
+  deletingId = id;
+  document.getElementById('deleteModal').classList.add('open');
+}
+
+function closeModal() {
+  document.getElementById('deleteModal').classList.remove('open');
+  deletingId = null;
+}
+
+function confirmDelete() {
+  pixels = pixels.filter(x => x.id !== deletingId);
+  filteredPixels = filteredPixels.filter(x => x.id !== deletingId);
+  closeModal();
+  renderTable();
+  showToast('Pixel deleted');
+}
+
+function toggleCapi(val) {
+  if (val) document.getElementById('capiBody').classList.add('open');
+  else document.getElementById('capiBody').classList.remove('open');
+}
+
+function selectRadio(val) {
+  ['all','selected','excluded'].forEach(v => {
+    const el = document.getElementById('radio-' + v);
+    if (el) el.classList.toggle('selected', v === val);
+  });
+  const radio = document.querySelector(`input[name="pages"][value="${val}"]`);
+  if (radio) radio.checked = true;
+}
+
+function updateCharCount(inputId, countId, max) {
+  const len = document.getElementById(inputId).value.length;
+  document.getElementById(countId).textContent = len;
+}
+
+let toastTimer;
+function showToast(msg, type) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.style.background = type === 'warning' ? '#b15c00' : '#303030';
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 2500);
+}
+
+renderTable();
+</script>
+</body>
+</html>
