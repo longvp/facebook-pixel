@@ -12,42 +12,26 @@ import {
   TextField,
   Text,
   InlineStack,
-  Checkbox,
   Modal,
   Frame,
   Toast,
-  Link as PolarisLink,
 } from "@shopify/polaris";
 import { useEffect, useState } from "react";
 import { requireAdmin } from "../lib/auth.server";
-import {
-  listPixels,
-  setActive,
-  setCapiEnabled,
-  deletePixel,
-} from "../models/pixel.server";
-import { syncWebPixel } from "../lib/webPixel.server";
-
+import { listPixels, deletePixel } from "../models/pixel.server";
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   const { session } = await requireAdmin(request);
   return json({ pixels: await listPixels(session.shop) });
 };
 
 export const action = async ({ request }: ActionFunctionArgs) => {
-  const { session, admin } = await requireAdmin(request);
+  const { session } = await requireAdmin(request);
   const form = await request.formData();
   const id = String(form.get("id"));
-  const op = String(form.get("_action"));
   try {
-    if (op === "toggleActive")
-      await setActive(session.shop, id, form.get("value") === "true");
-    if (op === "toggleCapi")
-      await setCapiEnabled(session.shop, id, form.get("value") === "true");
-    if (op === "delete") await deletePixel(session.shop, id);
-    await syncWebPixel(admin, session.shop).catch((e) =>
-      console.error("syncWebPixel", e),
-    );
-    return json({ ok: true, op });
+    if (String(form.get("_action")) === "delete")
+      await deletePixel(session.shop, id);
+    return json({ ok: true, op: "delete" });
   } catch (e: any) {
     return json({ ok: false, error: e.message }, { status: 400 });
   }
@@ -65,8 +49,6 @@ export default function Index() {
     if (!fetcher.data) return;
     if (fetcher.data.ok) {
       const map: Record<string, string> = {
-        toggleActive: "Pixel updated",
-        toggleCapi: "CAPI updated",
         delete: "Pixel deleted",
       };
       setToast(map[(fetcher.data as any).op] ?? "Saved");
@@ -105,10 +87,8 @@ export default function Index() {
             itemCount={filtered.length}
             selectable={false}
             headings={[
-              { title: "Active" },
               { title: "Pixel ID" },
               { title: "Pixel name" },
-              { title: "Conversion API" },
               { title: "Actions" },
             ]}
             emptyState={
@@ -120,20 +100,6 @@ export default function Index() {
             {filtered.map((p, i) => (
               <IndexTable.Row id={p.id} key={p.id} position={i}>
                 <IndexTable.Cell>
-                  <Checkbox
-                    label="Active"
-                    labelHidden
-                    checked={p.active}
-                    onChange={(v) =>
-                      submit({
-                        _action: "toggleActive",
-                        id: p.id,
-                        value: String(v),
-                      })
-                    }
-                  />
-                </IndexTable.Cell>
-                <IndexTable.Cell>
                   <Text as="span" tone="subdued">
                     <code>{p.pixelId}</code>
                   </Text>
@@ -144,27 +110,9 @@ export default function Index() {
                   </Text>
                 </IndexTable.Cell>
                 <IndexTable.Cell>
-                  <Checkbox
-                    label="CAPI"
-                    labelHidden
-                    checked={p.capiEnabled}
-                    onChange={(v) =>
-                      submit({
-                        _action: "toggleCapi",
-                        id: p.id,
-                        value: String(v),
-                      })
-                    }
-                  />
-                </IndexTable.Cell>
-                <IndexTable.Cell>
                   <InlineStack gap="200">
-                    <PolarisLink url={`/app/pixels/${p.id}`}>Edit</PolarisLink>
-                    <Button
-                      variant="plain"
-                      tone="critical"
-                      onClick={() => setDeleteId(p.id)}
-                    >
+                    <Button url={`/app/pixels/${p.id}`}>Edit</Button>
+                    <Button variant="primary" onClick={() => setDeleteId(p.id)}>
                       Delete
                     </Button>
                   </InlineStack>
@@ -177,9 +125,9 @@ export default function Index() {
         <Modal
           open={deleteId !== null}
           onClose={() => setDeleteId(null)}
-          title="Delete pixel?"
+          title="Do you want to delete"
           primaryAction={{
-            content: "Delete pixel",
+            content: "Delete",
             destructive: true,
             onAction: () => {
               if (deleteId) submit({ _action: "delete", id: deleteId });
@@ -192,8 +140,8 @@ export default function Index() {
         >
           <Modal.Section>
             <Text as="p">
-              This pixel will be permanently removed and tracking will stop
-              immediately. This action cannot be undone.
+              This pixel will be permanently removed. This action cannot be
+              undone.
             </Text>
           </Modal.Section>
         </Modal>

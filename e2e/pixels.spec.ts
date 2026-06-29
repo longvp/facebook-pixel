@@ -35,19 +35,6 @@ test("US-4: Pixel ID is immutable on edit", async ({ page }) => {
   await expect(page.getByLabel("Pixel ID")).toBeDisabled();
 });
 
-test("US-7: enabling CAPI without a token is rejected", async ({ page }) => {
-  const id = uniqueId(3);
-  await page.getByRole("link", { name: "Add pixel" }).click();
-  await page.getByLabel("Pixel name").fill("No Token");
-  await page.getByLabel("Pixel ID").fill(id);
-  await page.getByRole("button", { name: "Save pixel" }).click();
-  // toggle CAPI on the list row → warning, stays disabled (so use click, not
-  // check: the checkbox reverts to unchecked because CAPI can't be enabled)
-  const capiToggle = page.getByRole("checkbox", { name: "CAPI" }).first();
-  await capiToggle.click();
-  await expect(page.getByText(/access token/i)).toBeVisible();
-});
-
 test("US-5: delete asks for confirmation", async ({ page }) => {
   const id = uniqueId(4);
   await page.getByRole("link", { name: "Add pixel" }).click();
@@ -55,9 +42,11 @@ test("US-5: delete asks for confirmation", async ({ page }) => {
   await page.getByLabel("Pixel ID").fill(id);
   await page.getByRole("button", { name: "Save pixel" }).click();
   await page.getByRole("button", { name: "Delete" }).first().click();
-  await expect(page.getByText("Delete pixel?")).toBeVisible();
-  await page.getByRole("button", { name: "Delete pixel" }).click();
-  // the deleted pixel is gone from the list
+  await expect(page.getByText("Do you want to delete")).toBeVisible();
+  await page
+    .getByRole("dialog")
+    .getByRole("button", { name: "Delete" })
+    .click();
   await expect(page.getByText("To Delete")).toHaveCount(0);
 });
 
@@ -77,14 +66,13 @@ test("US-2: search filters the list", async ({ page }) => {
   await expect(page.getByText("Beta Pixel")).toHaveCount(0);
 });
 
-test("US-6: toggle a pixel inactive", async ({ page }) => {
+test("save a pixel with CAPI enabled + token", async ({ page }) => {
+  const id = uniqueId(9);
   await page.getByRole("link", { name: "Add pixel" }).click();
-  await page.getByLabel("Pixel name").fill("Toggle Me");
-  await page.getByLabel("Pixel ID").fill(uniqueId(8));
+  await page.getByLabel("Pixel name").fill("Capi Pixel");
+  await page.getByLabel("Pixel ID").fill(id);
+  await page.getByRole("checkbox", { name: "Enable CAPI" }).check();
+  await page.getByLabel("Facebook access token").fill("test-token");
   await page.getByRole("button", { name: "Save pixel" }).click();
-  await expect(page.getByText("Toggle Me")).toBeVisible();
-  const active = page.getByRole("checkbox", { name: "Active" }).first();
-  await expect(active).toBeChecked();
-  await active.click();
-  await expect(active).not.toBeChecked();
+  await expect(page.getByText("Capi Pixel")).toBeVisible();
 });
