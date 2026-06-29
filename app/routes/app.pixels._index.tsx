@@ -133,33 +133,15 @@ export default function Index() {
                   )}
                 </IndexTable.Cell>
                 <IndexTable.Cell>
-                  <InlineStack gap="200" blockAlign="center">
-                    {p.capiEnabled ? (
-                      <Text
-                        as="span"
-                        tone={p.testEventCode ? undefined : "subdued"}
-                      >
-                        {p.testEventCode ? (
-                          <code>{p.testEventCode}</code>
-                        ) : (
-                          "Not set"
-                        )}
-                      </Text>
-                    ) : (
-                      <Text as="span" tone="subdued">
-                        —
-                      </Text>
-                    )}
-                    <Button
-                      disabled={!p.capiEnabled}
-                      onClick={() => {
-                        setSetupId(p.id);
-                        setSetupCode(p.testEventCode ?? "");
-                      }}
-                    >
-                      Setup
-                    </Button>
-                  </InlineStack>
+                  <Button
+                    disabled={!p.capiEnabled}
+                    onClick={() => {
+                      setSetupId(p.id);
+                      setSetupCode(p.testEventCode ?? "");
+                    }}
+                  >
+                    Setup
+                  </Button>
                 </IndexTable.Cell>
                 <IndexTable.Cell>
                   <InlineStack gap="200">

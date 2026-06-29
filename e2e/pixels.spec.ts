@@ -90,5 +90,11 @@ test("set a test event code via the Setup modal", async ({ page }) => {
   await page.getByRole("button", { name: "Setup" }).first().click();
   await page.getByLabel("Test event code").fill("TEST99");
   await page.getByRole("dialog").getByRole("button", { name: "Save" }).click();
-  await expect(page.getByText("TEST99")).toBeVisible();
+
+  // The column shows only the Setup button — verify persistence by reloading
+  // and reopening the modal: the field is pre-filled from the saved value.
+  await page.waitForLoadState("networkidle");
+  await page.reload();
+  await page.getByRole("button", { name: "Setup" }).first().click();
+  await expect(page.getByLabel("Test event code")).toHaveValue("TEST99");
 });
