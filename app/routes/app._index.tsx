@@ -1,6 +1,6 @@
 import { json, type LoaderFunctionArgs } from "@remix-run/node";
-import { useLoaderData } from "@remix-run/react";
-import { Page, Card, IndexTable, Text } from "@shopify/polaris";
+import { useLoaderData, useRevalidator } from "@remix-run/react";
+import { Page, Card, IndexTable, Text, Badge } from "@shopify/polaris";
 import { requireAdmin } from "../lib/auth.server";
 import { listPixels } from "../models/pixel.server";
 import {
@@ -17,21 +17,35 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   ]);
   const rows = pivotCounts(
     counts,
-    pixels.map((p) => ({ pixelId: p.pixelId, name: p.name })),
+    pixels.map((p) => ({
+      pixelId: p.pixelId,
+      name: p.name,
+      capiEnabled: p.capiEnabled,
+    })),
   );
   return json({ rows, eventNames: EVENT_NAMES });
 };
 
 export default function Home() {
   const { rows, eventNames } = useLoaderData<typeof loader>();
+  const revalidator = useRevalidator();
+
   return (
-    <Page title="Home — CAPI events">
+    <Page
+      title="Home — CAPI events"
+      primaryAction={{
+        content: "Refresh",
+        onAction: () => revalidator.revalidate(),
+        loading: revalidator.state === "loading",
+      }}
+    >
       <Card padding="0">
         <IndexTable
           itemCount={rows.length}
           selectable={false}
           headings={[
             { title: "Pixel" },
+            { title: "Is CAPI" },
             ...eventNames.map((n) => ({ title: n })),
             { title: "Total" },
           ]}
@@ -47,6 +61,13 @@ export default function Home() {
                 <Text as="span" fontWeight="medium">
                   {r.name}
                 </Text>
+              </IndexTable.Cell>
+              <IndexTable.Cell>
+                {r.capiEnabled ? (
+                  <Badge tone="success">true</Badge>
+                ) : (
+                  <Badge>false</Badge>
+                )}
               </IndexTable.Cell>
               {eventNames.map((n) => (
                 <IndexTable.Cell key={n}>{r.counts[n]}</IndexTable.Cell>

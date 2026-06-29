@@ -54,12 +54,13 @@ describe("capiEventLog", () => {
         { pixelId: "111", eventName: "PageView", count: 3 },
         { pixelId: "111", eventName: "Purchase", count: 1 },
       ],
-      [{ pixelId: "111", name: "My Pixel" }],
+      [{ pixelId: "111", name: "My Pixel", capiEnabled: true }],
     );
     expect(pivot).toEqual([
       {
         pixelId: "111",
         name: "My Pixel",
+        capiEnabled: true,
         counts: {
           PageView: 3,
           ViewContent: 0,

@@ -52,13 +52,14 @@ export async function countByPixelAndEvent(shop: string): Promise<CountRow[]> {
 export type PivotRow = {
   pixelId: string;
   name: string;
+  capiEnabled: boolean;
   counts: Record<string, number>;
   total: number;
 };
 
 export function pivotCounts(
   rows: CountRow[],
-  pixels: { pixelId: string; name: string }[],
+  pixels: { pixelId: string; name: string; capiEnabled: boolean }[],
 ): PivotRow[] {
   return pixels.map((p) => {
     const counts: Record<string, number> = {};
@@ -70,6 +71,12 @@ export function pivotCounts(
         total += r.count;
       }
     }
-    return { pixelId: p.pixelId, name: p.name, counts, total };
+    return {
+      pixelId: p.pixelId,
+      name: p.name,
+      capiEnabled: p.capiEnabled,
+      counts,
+      total,
+    };
   });
 }
