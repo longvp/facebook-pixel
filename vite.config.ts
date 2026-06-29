@@ -69,5 +69,9 @@ export default defineConfig({
   },
   optimizeDeps: {
     include: ["@shopify/app-bridge-react", "@shopify/polaris"],
+    // Never pre-bundle the Prisma client: Vite would cache a snapshot in
+    // node_modules/.vite and keep serving it after `prisma generate` adds models,
+    // causing "prisma.<model> is undefined" until the cache is cleared.
+    exclude: ["@prisma/client"],
   },
 }) satisfies UserConfig;
