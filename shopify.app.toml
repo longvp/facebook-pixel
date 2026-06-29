@@ -21,8 +21,12 @@ api_version = "2026-07"
 
 [access_scopes]
 # Learn more at https://shopify.dev/docs/apps/tools/cli/configuration#access_scopes
-# write_pixels + read_customer_events are required by webPixelCreate (the Web Pixel).
-scopes = "write_products,write_pixels,read_customer_events"
+scopes = "read_customer_events,write_pixels,write_products"
+
+[app_proxy]
+url = "https://example.com"
+subpath = "fbpixel"
+prefix = "apps"
 
 [auth]
 redirect_urls = [ "https://example.com/api/auth" ]
