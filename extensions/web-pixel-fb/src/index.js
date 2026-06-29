@@ -22,6 +22,14 @@ register(({ analytics, browser, settings, init }) => {
   // Browser beacon fires for every active pixel; CAPI only for CAPI-enabled ones.
   const clientIds = parseList(settings.listPixelClient);
   const capiIds = parseList(settings.listPixelCapi);
+  // DEBUG: inspect the settings the web pixel actually received (storefront console).
+  console.log("[web-pixel-fb] settings", {
+    raw: settings,
+    listPixelClient: settings.listPixelClient,
+    listPixelCapi: settings.listPixelCapi,
+    clientIds,
+    capiIds,
+  });
   if (!clientIds.length && !capiIds.length) return;
 
   const userAgent = init?.context?.navigator?.userAgent || "";
