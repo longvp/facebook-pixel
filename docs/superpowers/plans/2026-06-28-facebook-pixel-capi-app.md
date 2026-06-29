@@ -6,7 +6,7 @@
 
 **Architecture:** A standalone Remix app persists pixels in MySQL via Prisma. Browser events fire through a Web Pixel Extension; server-side events fire through the Facebook Conversions API driven by Shopify webhooks, deduplicated via a shared `event_id`. The UI is rebuilt with real Polaris components from the approved mockup `docs/ui/pixel-app-ui.html`.
 
-**Tech Stack:** Node 18+, Remix, Shopify App Remix template, Polaris (`@shopify/polaris`), Prisma ORM, MySQL, `@shopify/shopify-app-remix`, Web Pixel Extension, Vitest for tests.
+**Tech Stack:** Node 18+, Remix, Shopify App Remix template, Polaris (`@shopify/polaris`), Prisma ORM, MySQL, `@shopify/shopify-app-remix`, Web Pixel Extension, Vitest (unit tests) + Playwright (E2E tests).
 
 ## Global Constraints
 
@@ -19,7 +19,7 @@
 - Standard events only at first: PageView, ViewContent, AddToCart, InitiateCheckout, Purchase.
 - Flow commands write their outputs under `docs/flow/`.
 - All secrets via env vars; never commit `.env`. Encryption key env: `APP_ENCRYPTION_KEY` (32-byte base64).
-- Tests: **Vitest**. Test files end in `.test.ts`.
+- Tests: **Vitest** (unit, files end in `.test.ts`) + **Playwright** (E2E, files end in `.spec.ts` under `e2e/`). Verification (the `/verify` phase) is TDD-driven: every acceptance criterion maps to a unit or E2E test.
 
 ---
 
@@ -45,6 +45,8 @@
 - `app/routes/webhooks.orders.create.tsx` — Purchase CAPI event.
 - `extensions/web-pixel-fb/` — Web Pixel Extension (browser events + dedup).
 - `app/lib/*.test.ts`, `app/models/*.test.ts` — Vitest unit tests.
+- `app/lib/auth.server.ts` — `requireAdmin` (test-mode auth shim for E2E).
+- `playwright.config.ts`, `e2e/*.spec.ts` — Playwright E2E (admin flows US-1..US-7).
 
 ---
 
@@ -1438,6 +1440,184 @@ git commit -m "feat: add Web Pixel Extension with server CAPI dedup"
 
 ---
 
+## Phase 5 — E2E Verification (Playwright, TDD red-green)
+
+### Task 15: Playwright E2E for the admin pixel flows (TDD)
+
+> **Execution order (TDD red-green):** This task is split across the UI work, not
+> run after it. Do **Steps 1–4 BEFORE Task 10** — they install Playwright, add the
+> auth shim, and write the **failing** E2E specs (red). Then build the UI
+> (Tasks 10 → 11 → 12), re-running `npm run test:e2e` to watch specs go **green**
+> one by one. Do **Step 5 (full green run) AFTER Task 12**. So the real sequence is:
+> `… → T9 → T13 → T15 Steps 1–4 (red) → T10 → T11 → T12 → T15 Step 5 (green)`.
+
+**Files:**
+- Create: `playwright.config.ts`
+- Create: `app/lib/auth.server.ts` (test-mode auth wrapper)
+- Create: `e2e/pixels.spec.ts`
+- Modify: `app/routes/app._index.tsx`, `app/routes/app.pixels.new.tsx`,
+  `app/routes/app.pixels.$id.tsx` — call `requireAdmin` instead of `authenticate.admin`
+- Modify: `package.json` (Playwright + cross-env devDeps, `dev:e2e` + `test:e2e` scripts)
+
+**Interfaces:**
+- Consumes: the running Remix app (admin routes T10–T12), `prisma` (T6/T8).
+- Produces: E2E coverage for **US-1..US-7** (list, search, add, edit with
+  immutable Pixel ID, delete-with-confirm, active/CAPI toggles, CAPI-requires-token).
+  **US-8** (browser Web Pixel) and **US-9** (server CAPI) stay covered by unit tests
+  (Task 9) + manual dev-store checks (Tasks 13–14): they exercise the storefront and
+  Facebook, not the admin UI, so they are out of Playwright's scope. State this in
+  `docs/flow/verification.md`.
+
+**Why a test-mode auth wrapper:** the embedded app's `authenticate.admin` needs a
+real Shopify session (OAuth + iframe), which Playwright can't supply headlessly.
+`requireAdmin` returns a stub session for a fixed test shop **only** when `E2E=1`,
+and delegates to `authenticate.admin` otherwise — so production auth is unchanged.
+
+- [ ] **Step 1: Install Playwright + scripts**
+
+Run: `npm i -D @playwright/test cross-env && npx playwright install chromium`
+Add to `package.json` `"scripts"`:
+```json
+"dev:e2e": "cross-env E2E=1 remix vite:dev --port 3000",
+"test:e2e": "playwright test"
+```
+(If the scaffold's dev server command differs, point `dev:e2e` at it with `E2E=1` + `--port 3000`.)
+
+- [ ] **Step 2: Write the test-mode auth wrapper**
+
+```ts
+// app/lib/auth.server.ts
+import { authenticate } from "../shopify.server";
+
+export const E2E_SHOP = "e2e-test.myshopify.com";
+
+// In E2E mode, bypass Shopify OAuth with a stub session. Otherwise authenticate normally.
+export async function requireAdmin(request: Request) {
+  if (process.env.E2E === "1") {
+    return { session: { shop: E2E_SHOP }, admin: null as any };
+  }
+  return authenticate.admin(request);
+}
+```
+
+Then in each admin route, replace `const { session } = await authenticate.admin(request);`
+with `const { session } = await requireAdmin(request);` and update the import to
+`import { requireAdmin } from "../lib/auth.server";`. (Webhook routes keep
+`authenticate.webhook`.)
+
+- [ ] **Step 3: Write the Playwright config**
+
+```ts
+// playwright.config.ts
+import { defineConfig } from "@playwright/test";
+
+export default defineConfig({
+  testDir: "./e2e",
+  timeout: 30_000,
+  use: { baseURL: "http://localhost:3000" },
+  webServer: {
+    command: "npm run dev:e2e",
+    url: "http://localhost:3000/app",
+    timeout: 120_000,
+    reuseExistingServer: !process.env.CI,
+    env: {
+      E2E: "1",
+      DATABASE_URL: process.env.E2E_DATABASE_URL ?? "mysql://root:@127.0.0.1:3306/facebook_pixel_e2e",
+    },
+  },
+});
+```
+Create the test DB once: `CREATE DATABASE facebook_pixel_e2e;` then
+`cross-env DATABASE_URL=mysql://root:@127.0.0.1:3306/facebook_pixel_e2e npx prisma migrate deploy`.
+
+- [ ] **Step 4: Write the failing E2E spec (TDD)**
+
+```ts
+// e2e/pixels.spec.ts
+import { test, expect } from "@playwright/test";
+
+const uniqueId = (i: number) => `99${i}${Date.now().toString().slice(-7)}`;
+
+test.beforeEach(async ({ page }) => {
+  await page.goto("/app");
+});
+
+test("US-1/US-3: add a pixel, then it appears in the list", async ({ page }) => {
+  const id = uniqueId(1);
+  await page.getByRole("button", { name: "Add pixel" }).click();
+  await page.getByLabel("Pixel name").fill("My Test Pixel");
+  await page.getByLabel("Pixel ID").fill(id);
+  await page.getByRole("button", { name: "Save pixel" }).click();
+  await expect(page.getByText("My Test Pixel")).toBeVisible();
+  await expect(page.getByText(id)).toBeVisible();
+});
+
+test("US-3: name + Pixel ID are required", async ({ page }) => {
+  await page.getByRole("button", { name: "Add pixel" }).click();
+  await page.getByRole("button", { name: "Save pixel" }).click();
+  // stays on the form (no redirect to the list)
+  await expect(page.getByRole("button", { name: "Save pixel" })).toBeVisible();
+});
+
+test("US-4: Pixel ID is immutable on edit", async ({ page }) => {
+  const id = uniqueId(2);
+  await page.getByRole("button", { name: "Add pixel" }).click();
+  await page.getByLabel("Pixel name").fill("Editable");
+  await page.getByLabel("Pixel ID").fill(id);
+  await page.getByRole("button", { name: "Save pixel" }).click();
+  await page.getByRole("link", { name: "Edit" }).first().click();
+  await expect(page.getByLabel("Pixel ID")).toBeDisabled();
+});
+
+test("US-7: enabling CAPI without a token is rejected", async ({ page }) => {
+  const id = uniqueId(3);
+  await page.getByRole("button", { name: "Add pixel" }).click();
+  await page.getByLabel("Pixel name").fill("No Token");
+  await page.getByLabel("Pixel ID").fill(id);
+  await page.getByRole("button", { name: "Save pixel" }).click();
+  // toggle CAPI on the list row → warning, stays disabled
+  const capiToggle = page.getByRole("checkbox", { name: "CAPI" }).first();
+  await capiToggle.check();
+  await expect(page.getByText(/access token/i)).toBeVisible();
+});
+
+test("US-5: delete asks for confirmation", async ({ page }) => {
+  const id = uniqueId(4);
+  await page.getByRole("button", { name: "Add pixel" }).click();
+  await page.getByLabel("Pixel name").fill("To Delete");
+  await page.getByLabel("Pixel ID").fill(id);
+  await page.getByRole("button", { name: "Save pixel" }).click();
+  await page.getByRole("button", { name: "Delete" }).first().click();
+  await expect(page.getByText("Delete pixel?")).toBeVisible();
+  await page.getByRole("button", { name: "Delete pixel" }).click();
+  await expect(page.getByText("Pixel deleted")).toBeVisible();
+});
+```
+
+- [ ] **Step 4b: Run E2E now to confirm RED (before building the UI)**
+
+Run: `npm run test:e2e`
+Expected: specs **FAIL** — the admin UI/routes don't satisfy them yet. This is the
+red signal that must precede Tasks 10–12. Capture the failing output.
+
+> Now go build the UI: **Tasks 10 → 11 → 12**, re-running `npm run test:e2e` after
+> each to watch specs turn green incrementally (true red-green TDD).
+
+- [ ] **Step 5: Run E2E GREEN (after Task 12)**
+
+Run: `npm run test:e2e`
+Expected: all specs **PASS** once Tasks 10–12 are complete and the admin routes use
+`requireAdmin`. Capture output for `docs/flow/verification.md`.
+
+- [ ] **Step 6: Commit**
+
+```bash
+git add playwright.config.ts e2e app/lib/auth.server.ts app/routes/app._index.tsx app/routes/app.pixels.new.tsx app/routes/app.pixels.$id.tsx package.json package-lock.json
+git commit -m "test: add Playwright E2E for admin pixel flows (US-1..US-7)"
+```
+
+---
+
 ## Self-Review
 
 **Spec coverage:**
@@ -1450,9 +1630,18 @@ git commit -m "feat: add Web Pixel Extension with server CAPI dedup"
 - Scaffold via Shopify CLI → Task 5. ✓
 - MySQL via Prisma → Task 6. ✓
 - UI per mockup → Tasks 10–12 (Polaris). ✓
+- TDD verification with E2E (Playwright) → Task 15 (US-1..US-7); `/verify` maps criteria → tests. ✓
 
 **Placeholder scan:** No TBD/TODO; every code step has full code. The only deferred item (SELECTED/EXCLUDED page picker) is an explicit spec Open Item, persisted as `[]`, not a hidden placeholder.
 
 **Type consistency:** `PixelView`/`PixelInput` defined in Task 8 are used consistently in Tasks 10–13. `buildEvent`/`sendEvents` signatures (Task 9) match their callers (Task 13). `event_id`/`eventID` dedup key is `order-<id>` in both Task 13 (server) and Task 14 (browser). ✓
 
-> **Note on TDD coverage:** Phases 0–2 are unit-tested (crypto, model, CAPI). Phase 3–4 (Remix UI, webhook, extension) are verified by running the app against a dev store rather than unit tests, since they depend on Shopify runtime/auth. The `/verify` flow captures this evidence in `docs/flow/verification.md`.
+**Verification coverage (TDD):**
+- Unit (Vitest): crypto (T7), pixel model (T8), CAPI builder/sender (T9).
+- E2E (Playwright, T15): admin flows US-1..US-7 against the running app via a
+  test-mode auth shim.
+- US-8 (browser Web Pixel) and US-9 (server CAPI) → unit (T9) + manual dev-store
+  checks (T13/T14); not Playwright-reachable (storefront + Facebook).
+- The `/verify` phase maps every acceptance criterion to a test and records
+  pass/fail with command output in `docs/flow/verification.md`. Any criterion
+  without a covering test is a TDD gap to close before claiming it verified.

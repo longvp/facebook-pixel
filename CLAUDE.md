@@ -7,7 +7,7 @@ Shopify embedded app to manage Facebook Pixels & the Conversions API (CAPI).
 - UI: Polaris React (`@shopify/polaris`) + App Bridge
 - DB: MySQL via Prisma
 - Tracking: Web Pixel Extension (browser) + server-side CAPI (webhooks)
-- Tests: Vitest
+- Tests: Vitest (unit) + Playwright (E2E)
 
 ## Structure
 - `app/routes/` — Remix routes (loaders/actions). `app.*` = embedded admin pages.
@@ -21,7 +21,8 @@ Shopify embedded app to manage Facebook Pixels & the Conversions API (CAPI).
 - `npm run dev` / `shopify app dev` — run app against a dev store
 - `npx prisma migrate dev --name <x>` — create + apply migration
 - `npx prisma studio` — browse data
-- `npm test` — run Vitest
+- `npm test` — run Vitest (unit)
+- `npx playwright test` — run Playwright E2E
 - `npm run lint` — ESLint
 
 ## Conventions

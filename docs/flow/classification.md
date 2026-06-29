@@ -23,10 +23,13 @@ see `complex-cases.md`), **discuss** (blocked on a decision — see `questions.m
 | T12 Edit pixel screen | US-4,7 | **now** | Mirrors T11; Pixel ID immutable. |
 | T13 orders/create webhook → Purchase | US-9 | **now** | Wires T8+T9; verified against dev store. |
 | T14 Web Pixel Extension | US-8 | **complex** | Sandbox runtime, settings wiring (which pixels are active), event mapping, dedup. See complex-cases. |
+| T15 Playwright E2E (admin flows) | US-1..7 | **now** | TDD red-green: write failing E2E specs + auth shim BEFORE the UI, then T10–T12 make them green. |
 | Test event code persistence | US-7 | **discuss** | Store vs transient undecided. See questions.md. |
 
 ## Summary
-- **now (8):** T6, T7, T8, T9, T10, T11, T12, T13 → ready for `/execute` (recommended order: T6 → T7 → T8 → T9 → T13 → T10 → T11 → T12).
+- **now (9):** T6, T7, T8, T9, T10, T11, T12, T13, T15 → ready for `/execute`.
+  Recommended **TDD red-green** order:
+  `T6 → T7 → T8 → T9 → T13 → T15 Steps 1–4 (write failing E2E, red) → T10 → T11 → T12 (E2E turns green) → T15 Step 5 (full green run)`.
 - **complex (2):** T5 (scaffold — must run first, needs user), T14 (web pixel extension).
 - **discuss (1):** test-event-code persistence — resolve before it blocks T8/T11/T12 (currently the form writes whatever is entered).
 
