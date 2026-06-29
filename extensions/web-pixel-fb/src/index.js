@@ -1,12 +1,8 @@
 import { register } from "@shopify/web-pixels-extension";
 
-// Runs in Shopify's sandboxed (strict) web-pixel worker: no window/document, but
-// fetch IS available. We therefore fire Facebook's image-beacon endpoint
-// (facebook.com/tr) instead of the classic fbq snippet, attaching an `eid`
-// (event id) that matches the server-side CAPI event for deduplication.
-register(({ analytics, settings }) => {
-  // settings.pixelIds is a JSON-encoded array string (Shopify settings fields are
-  // strings). Parse it back to string[]; tolerate a raw array or CSV too.
+const PROXY_SUBPATH = "/apps/fbpixel/capi";
+
+register(({ analytics, browser, settings, init }) => {
   const raw = settings.pixelIds;
   let parsed = raw;
   if (typeof raw === "string") {
@@ -21,53 +17,68 @@ register(({ analytics, settings }) => {
     .filter(Boolean);
   if (!pixelIds.length) return;
 
+  const userAgent = init?.context?.navigator?.userAgent || "";
+
   function fire(eventName, eventId, url, custom) {
     pixelIds.forEach((id) => {
       const params = new URLSearchParams({
-        id,
-        ev: eventName,
-        dl: url || "",
-        rl: "",
-        if: "false",
-        ts: String(Date.now()),
-        eid: eventId, // dedup key shared with server CAPI (e.g. order-<id>)
-        noscript: "1",
+        id, ev: eventName, dl: url || "", rl: "", if: "false",
+        ts: String(Date.now()), eid: eventId, noscript: "1",
       });
       if (custom?.currency) params.set("cd[currency]", custom.currency);
       if (custom?.value != null) params.set("cd[value]", String(custom.value));
-      // no-cors: fire-and-forget beacon; keepalive so it survives navigation.
       fetch(`https://www.facebook.com/tr/?${params.toString()}`, {
-        method: "GET",
-        mode: "no-cors",
-        keepalive: true,
+        method: "GET", mode: "no-cors", keepalive: true,
       }).catch(() => {});
     });
   }
 
-  const href = (event) => event?.context?.document?.location?.href || "";
+  async function sendCapi(eventName, eventId, url, custom, extra) {
+    if (!url) return;
+    let origin = "";
+    try {
+      origin = new URL(url).origin;
+    } catch {
+      return;
+    }
+    const [fbp, fbc] = await Promise.all([
+      browser.cookie.get("_fbp").catch(() => ""),
+      browser.cookie.get("_fbc").catch(() => ""),
+    ]);
+    fetch(`${origin}${PROXY_SUBPATH}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      keepalive: true,
+      body: JSON.stringify({
+        eventName, eventId, url, userAgent, fbp, fbc,
+        currency: custom?.currency,
+        value: custom?.value != null ? Number(custom.value) : undefined,
+        ...(extra || {}),
+      }),
+    }).catch(() => {});
+  }
 
-  analytics.subscribe("page_viewed", (event) => {
-    fire("PageView", event.id, href(event));
-  });
+  function track(eventName, event, custom, extra) {
+    const url = event?.context?.document?.location?.href || "";
+    const eventId = event.id;
+    fire(eventName, eventId, url, custom);
+    sendCapi(eventName, eventId, url, custom, extra);
+  }
 
-  analytics.subscribe("product_viewed", (event) => {
-    fire("ViewContent", event.id, href(event));
-  });
-
-  analytics.subscribe("product_added_to_cart", (event) => {
-    fire("AddToCart", event.id, href(event));
-  });
-
-  analytics.subscribe("checkout_started", (event) => {
-    fire("InitiateCheckout", event.id, href(event));
-  });
-
-  analytics.subscribe("checkout_completed", (event) => {
-    const checkout = event?.data?.checkout;
+  analytics.subscribe("page_viewed", (e) => track("PageView", e));
+  analytics.subscribe("product_viewed", (e) => track("ViewContent", e));
+  analytics.subscribe("product_added_to_cart", (e) => track("AddToCart", e));
+  analytics.subscribe("checkout_started", (e) => track("InitiateCheckout", e));
+  analytics.subscribe("checkout_completed", (e) => {
+    const checkout = e?.data?.checkout;
     const orderId = checkout?.order?.id;
-    fire("Purchase", orderId ? `order-${orderId}` : event.id, href(event), {
-      currency: checkout?.totalPrice?.currencyCode,
-      value: checkout?.totalPrice?.amount,
-    });
+    const email = checkout?.email || checkout?.order?.customer?.email || undefined;
+    const phone = checkout?.phone || undefined;
+    track(
+      "Purchase",
+      { ...e, id: orderId ? `order-${orderId}` : e.id },
+      { currency: checkout?.totalPrice?.currencyCode, value: checkout?.totalPrice?.amount },
+      { email, phone },
+    );
   });
 });
