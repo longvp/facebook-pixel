@@ -51,9 +51,10 @@ describe("syncWebPixel", () => {
 
     const [query, opts] = a.graphql.mock.calls[0];
     expect(query).toContain("webPixelCreate");
-    expect(JSON.parse(opts.variables.settings)).toEqual({
-      pixelIds: ["111", "333"],
-    });
+    // Shopify settings fields are strings; the array is encoded as a JSON string.
+    const sent = JSON.parse(opts.variables.settings);
+    expect(typeof sent.pixelIds).toBe("string");
+    expect(JSON.parse(sent.pixelIds)).toEqual(["111", "333"]);
     expect(state.upserts[0]).toEqual({
       shop: "s.myshopify.com",
       webPixelId: "gid://wp/1",

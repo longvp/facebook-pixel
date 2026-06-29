@@ -34,7 +34,9 @@ const UPDATE = `#graphql
 async function buildSettings(shop: string): Promise<string> {
   const pixels = await listPixels(shop);
   const pixelIds = pixels.filter((p) => p.active).map((p) => p.pixelId);
-  return JSON.stringify({ pixelIds });
+  // Shopify web pixel settings fields must be strings (single_line_text_field),
+  // so encode the string[] as a JSON string; the extension parses it back.
+  return JSON.stringify({ pixelIds: JSON.stringify(pixelIds) });
 }
 
 export async function syncWebPixel(
