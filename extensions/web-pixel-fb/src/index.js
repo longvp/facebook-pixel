@@ -1,7 +1,5 @@
 import { register } from "@shopify/web-pixels-extension";
 
-const PROXY_SUBPATH = "/apps/fbpixel/capi";
-
 // Each setting is a JSON-encoded array string (Shopify settings fields are
 // strings). Parse back to string[]; tolerate a raw array or CSV too.
 function parseList(raw) {
@@ -22,13 +20,15 @@ register(({ analytics, browser, settings, init }) => {
   // Browser beacon fires for every active pixel; CAPI only for CAPI-enabled ones.
   const clientIds = parseList(settings.listPixelClient);
   const capiIds = parseList(settings.listPixelCapi);
+  const apiUrl = String(settings.apiUrl || "").replace(/\/$/, "");
+  const shop = String(settings.shop || "");
   // DEBUG: inspect the settings the web pixel actually received (storefront console).
   console.log("[web-pixel-fb] settings", {
     raw: settings,
-    listPixelClient: settings.listPixelClient,
-    listPixelCapi: settings.listPixelCapi,
     clientIds,
     capiIds,
+    apiUrl,
+    shop,
   });
   if (!clientIds.length && !capiIds.length) return;
 
@@ -57,22 +57,21 @@ register(({ analytics, browser, settings, init }) => {
   }
 
   async function sendCapi(eventName, eventId, url, custom, extra) {
-    if (!capiIds.length || !url) return;
-    let origin = "";
-    try {
-      origin = new URL(url).origin;
-    } catch {
-      return;
-    }
+    if (!capiIds.length || !apiUrl) return;
     const [fbp, fbc] = await Promise.all([
       browser.cookie.get("_fbp").catch(() => ""),
       browser.cookie.get("_fbc").catch(() => ""),
     ]);
-    fetch(`${origin}${PROXY_SUBPATH}`, {
+    // POST to the APP origin (cross-origin from the storefront). Use no-cors +
+    // text/plain so it's a "simple" request: no preflight, and the sandbox allows
+    // it (same-origin App Proxy URLs are blocked). Fire-and-forget; response opaque.
+    fetch(`${apiUrl}/capi`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      mode: "no-cors",
+      headers: { "Content-Type": "text/plain" },
       keepalive: true,
       body: JSON.stringify({
+        shop,
         eventName,
         eventId,
         url,

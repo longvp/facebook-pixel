@@ -41,9 +41,14 @@ async function buildSettings(shop: string): Promise<string> {
     .map((p) => p.pixelId);
   // Shopify web pixel settings fields must be strings (single_line_text_field),
   // so encode each string[] as a JSON string; the extension parses it back.
+  // apiUrl = the app's own origin (cross-origin from the storefront, so the
+  // sandbox allows the fetch — same-origin App Proxy URLs are blocked). shop is
+  // forwarded in the body since there is no App-Proxy signature anymore.
   return JSON.stringify({
     listPixelClient: JSON.stringify(listPixelClient),
     listPixelCapi: JSON.stringify(listPixelCapi),
+    apiUrl: process.env.SHOPIFY_APP_URL || "",
+    shop,
   });
 }
 
