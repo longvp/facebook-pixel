@@ -2,8 +2,9 @@ import { register } from "@shopify/web-pixels-extension";
 
 const PROXY_SUBPATH = "/apps/fbpixel/capi";
 
-register(({ analytics, browser, settings, init }) => {
-  const raw = settings.pixelIds;
+// Each setting is a JSON-encoded array string (Shopify settings fields are
+// strings). Parse back to string[]; tolerate a raw array or CSV too.
+function parseList(raw) {
   let parsed = raw;
   if (typeof raw === "string") {
     try {
@@ -12,29 +13,43 @@ register(({ analytics, browser, settings, init }) => {
       parsed = raw.split(",");
     }
   }
-  const pixelIds = (Array.isArray(parsed) ? parsed : String(parsed || "").split(","))
+  return (Array.isArray(parsed) ? parsed : String(parsed || "").split(","))
     .map((s) => String(s).trim())
     .filter(Boolean);
-  if (!pixelIds.length) return;
+}
+
+register(({ analytics, browser, settings, init }) => {
+  // Browser beacon fires for every active pixel; CAPI only for CAPI-enabled ones.
+  const clientIds = parseList(settings.listPixelClient);
+  const capiIds = parseList(settings.listPixelCapi);
+  if (!clientIds.length && !capiIds.length) return;
 
   const userAgent = init?.context?.navigator?.userAgent || "";
 
   function fire(eventName, eventId, url, custom) {
-    pixelIds.forEach((id) => {
+    clientIds.forEach((id) => {
       const params = new URLSearchParams({
-        id, ev: eventName, dl: url || "", rl: "", if: "false",
-        ts: String(Date.now()), eid: eventId, noscript: "1",
+        id,
+        ev: eventName,
+        dl: url || "",
+        rl: "",
+        if: "false",
+        ts: String(Date.now()),
+        eid: eventId,
+        noscript: "1",
       });
       if (custom?.currency) params.set("cd[currency]", custom.currency);
       if (custom?.value != null) params.set("cd[value]", String(custom.value));
       fetch(`https://www.facebook.com/tr/?${params.toString()}`, {
-        method: "GET", mode: "no-cors", keepalive: true,
+        method: "GET",
+        mode: "no-cors",
+        keepalive: true,
       }).catch(() => {});
     });
   }
 
   async function sendCapi(eventName, eventId, url, custom, extra) {
-    if (!url) return;
+    if (!capiIds.length || !url) return;
     let origin = "";
     try {
       origin = new URL(url).origin;
@@ -50,7 +65,12 @@ register(({ analytics, browser, settings, init }) => {
       headers: { "Content-Type": "application/json" },
       keepalive: true,
       body: JSON.stringify({
-        eventName, eventId, url, userAgent, fbp, fbc,
+        eventName,
+        eventId,
+        url,
+        userAgent,
+        fbp,
+        fbc,
         currency: custom?.currency,
         value: custom?.value != null ? Number(custom.value) : undefined,
         ...(extra || {}),

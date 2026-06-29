@@ -33,10 +33,18 @@ const UPDATE = `#graphql
 
 async function buildSettings(shop: string): Promise<string> {
   const pixels = await listPixels(shop);
-  const pixelIds = pixels.filter((p) => p.active).map((p) => p.pixelId);
+  // Browser (client) beacon fires for every ACTIVE pixel — independent of CAPI.
+  const listPixelClient = pixels.filter((p) => p.active).map((p) => p.pixelId);
+  // Server CAPI fires only for ACTIVE + CAPI-enabled pixels.
+  const listPixelCapi = pixels
+    .filter((p) => p.active && p.capiEnabled)
+    .map((p) => p.pixelId);
   // Shopify web pixel settings fields must be strings (single_line_text_field),
-  // so encode the string[] as a JSON string; the extension parses it back.
-  return JSON.stringify({ pixelIds: JSON.stringify(pixelIds) });
+  // so encode each string[] as a JSON string; the extension parses it back.
+  return JSON.stringify({
+    listPixelClient: JSON.stringify(listPixelClient),
+    listPixelCapi: JSON.stringify(listPixelCapi),
+  });
 }
 
 export async function syncWebPixel(

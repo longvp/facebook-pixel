@@ -3,13 +3,19 @@ api_version = "2026-07"
 [[extensions]]
 name = "Facebook Web Pixel"
 handle = "web-pixel-fb"
+uid = "e4ee798f-1912-28f9-ee95-7dd25ed97e97c7fe28d1"
 type = "web_pixel_extension"
 runtime_context = "strict"
 
   [extensions.settings]
   type = "object"
 
-    [extensions.settings.fields.pixelIds]
-    name = "Active Facebook Pixel IDs"
-    description = "Comma-separated Facebook Pixel IDs to fire on the storefront."
+    [extensions.settings.fields.listPixelClient]
+    name = "Client (browser) Pixel IDs"
+    description = "JSON array of active Facebook Pixel IDs that fire the browser pixel."
+    type = "single_line_text_field"
+
+    [extensions.settings.fields.listPixelCapi]
+    name = "CAPI Pixel IDs"
+    description = "JSON array of active + CAPI-enabled Facebook Pixel IDs (server events)."
     type = "single_line_text_field"

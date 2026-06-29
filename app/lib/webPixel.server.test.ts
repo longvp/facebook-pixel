@@ -6,9 +6,9 @@ vi.mock("../db.server", () => ({
   default: {
     pixel: {
       findMany: vi.fn(async () => [
-        { active: true, pixelId: "111" },
-        { active: false, pixelId: "222" },
-        { active: true, pixelId: "333" },
+        { active: true, capiEnabled: true, pixelId: "111" },
+        { active: false, capiEnabled: true, pixelId: "222" },
+        { active: true, capiEnabled: false, pixelId: "333" },
       ]),
     },
     webPixelConfig: {
@@ -51,10 +51,11 @@ describe("syncWebPixel", () => {
 
     const [query, opts] = a.graphql.mock.calls[0];
     expect(query).toContain("webPixelCreate");
-    // Shopify settings fields are strings; the array is encoded as a JSON string.
+    // Shopify settings fields are strings; each list is a JSON-encoded string.
+    // listPixelClient = all active pixels; listPixelCapi = active && capiEnabled.
     const sent = JSON.parse(opts.variables.settings);
-    expect(typeof sent.pixelIds).toBe("string");
-    expect(JSON.parse(sent.pixelIds)).toEqual(["111", "333"]);
+    expect(JSON.parse(sent.listPixelClient)).toEqual(["111", "333"]);
+    expect(JSON.parse(sent.listPixelCapi)).toEqual(["111"]);
     expect(state.upserts[0]).toEqual({
       shop: "s.myshopify.com",
       webPixelId: "gid://wp/1",
