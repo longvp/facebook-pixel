@@ -67,15 +67,17 @@ describe("validateCapiToken", () => {
     delete process.env.E2E;
   });
 
-  it("returns ok when the test event is accepted", async () => {
-    vi.stubGlobal(
-      "fetch",
-      vi.fn(
-        async () =>
-          new Response(JSON.stringify({ events_received: 1 }), { status: 200 }),
-      ),
+  it("returns ok and sends non-empty user_data + a test_event_code", async () => {
+    const fetchMock = vi.fn(
+      async () =>
+        new Response(JSON.stringify({ events_received: 1 }), { status: 200 }),
     );
+    vi.stubGlobal("fetch", fetchMock);
     expect(await validateCapiToken("PIX", "tok")).toEqual({ ok: true });
+    // Guard the false-negative bug: Meta rejects events with empty user_data.
+    const body = JSON.parse((fetchMock.mock.calls[0][1] as any).body);
+    expect(Object.keys(body.data[0].user_data).length).toBeGreaterThan(0);
+    expect(body.test_event_code).toBeTruthy();
   });
 
   it("returns the Meta error message when rejected", async () => {

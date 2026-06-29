@@ -89,8 +89,20 @@ export async function validateCapiToken(
     eventName: "PageView",
     eventTime: Math.floor(Date.now() / 1000),
     eventId: `validate-${Date.now()}`,
+    // Meta rejects events with no customer-information parameters (code 100 /
+    // subcode 2804050 "insufficient customer information"). A client_user_agent
+    // + client_ip_address pair satisfies the check, so the result reflects the
+    // TOKEN's validity (190 = bad token) rather than a missing-params error.
+    userAgent: "Mozilla/5.0",
+    clientIp: "1.2.3.4",
   });
-  const res = await sendEvents(pixelId, token, [event], testEventCode);
+  // Route the validation ping to Test Events so it isn't counted as a real event.
+  const res = await sendEvents(
+    pixelId,
+    token,
+    [event],
+    testEventCode || "TOKEN_VALIDATION",
+  );
   if (res.ok) return { ok: true };
   const message =
     res.body?.error?.message ||
