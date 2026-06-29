@@ -1,334 +1,201 @@
-import { useEffect } from "react";
-import type { ActionFunctionArgs, LoaderFunctionArgs } from "@remix-run/node";
-import { useFetcher } from "@remix-run/react";
+import {
+  json,
+  type LoaderFunctionArgs,
+  type ActionFunctionArgs,
+} from "@remix-run/node";
+import { useLoaderData, useFetcher } from "@remix-run/react";
 import {
   Page,
-  Layout,
-  Text,
   Card,
+  IndexTable,
   Button,
-  BlockStack,
-  Box,
-  List,
-  Link,
+  TextField,
+  Text,
   InlineStack,
+  Checkbox,
+  Modal,
+  Frame,
+  Toast,
+  Link as PolarisLink,
 } from "@shopify/polaris";
-import { TitleBar, useAppBridge } from "@shopify/app-bridge-react";
-import { authenticate } from "../shopify.server";
+import { useEffect, useState } from "react";
+import { requireAdmin } from "../lib/auth.server";
+import {
+  listPixels,
+  setActive,
+  setCapiEnabled,
+  deletePixel,
+} from "../models/pixel.server";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
-  await authenticate.admin(request);
-
-  return null;
+  const { session } = await requireAdmin(request);
+  return json({ pixels: await listPixels(session.shop) });
 };
 
 export const action = async ({ request }: ActionFunctionArgs) => {
-  const { admin } = await authenticate.admin(request);
-  const color = ["Red", "Orange", "Yellow", "Green"][
-    Math.floor(Math.random() * 4)
-  ];
-  const response = await admin.graphql(
-    `#graphql
-      mutation populateProduct($product: ProductCreateInput!) {
-        productCreate(product: $product) {
-          product {
-            id
-            title
-            handle
-            status
-            variants(first: 10) {
-              edges {
-                node {
-                  id
-                  price
-                  barcode
-                  createdAt
-                }
-              }
-            }
-          }
-        }
-      }`,
-    {
-      variables: {
-        product: {
-          title: `${color} Snowboard`,
-        },
-      },
-    },
-  );
-  const responseJson = await response.json();
-
-  const product = responseJson.data!.productCreate!.product!;
-  const variantId = product.variants.edges[0]!.node!.id!;
-
-  const variantResponse = await admin.graphql(
-    `#graphql
-    mutation shopifyRemixTemplateUpdateVariant($productId: ID!, $variants: [ProductVariantsBulkInput!]!) {
-      productVariantsBulkUpdate(productId: $productId, variants: $variants) {
-        productVariants {
-          id
-          price
-          barcode
-          createdAt
-        }
-      }
-    }`,
-    {
-      variables: {
-        productId: product.id,
-        variants: [{ id: variantId, price: "100.00" }],
-      },
-    },
-  );
-
-  const variantResponseJson = await variantResponse.json();
-
-  return {
-    product: responseJson!.data!.productCreate!.product,
-    variant:
-      variantResponseJson!.data!.productVariantsBulkUpdate!.productVariants,
-  };
+  const { session } = await requireAdmin(request);
+  const form = await request.formData();
+  const id = String(form.get("id"));
+  const op = String(form.get("_action"));
+  try {
+    if (op === "toggleActive")
+      await setActive(session.shop, id, form.get("value") === "true");
+    if (op === "toggleCapi")
+      await setCapiEnabled(session.shop, id, form.get("value") === "true");
+    if (op === "delete") await deletePixel(session.shop, id);
+    return json({ ok: true, op });
+  } catch (e: any) {
+    return json({ ok: false, error: e.message }, { status: 400 });
+  }
 };
 
 export default function Index() {
+  const { pixels } = useLoaderData<typeof loader>();
   const fetcher = useFetcher<typeof action>();
+  const [query, setQuery] = useState("");
+  const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [toast, setToast] = useState<string | null>(null);
 
-  const shopify = useAppBridge();
-  const isLoading =
-    ["loading", "submitting"].includes(fetcher.state) &&
-    fetcher.formMethod === "POST";
-  const productId = fetcher.data?.product?.id.replace(
-    "gid://shopify/Product/",
-    "",
+  // Surface action results as Polaris Toasts.
+  useEffect(() => {
+    if (!fetcher.data) return;
+    if (fetcher.data.ok) {
+      const map: Record<string, string> = {
+        toggleActive: "Pixel updated",
+        toggleCapi: "CAPI updated",
+        delete: "Pixel deleted",
+      };
+      setToast(map[(fetcher.data as any).op] ?? "Saved");
+    } else {
+      setToast((fetcher.data as any).error);
+    }
+  }, [fetcher.data]);
+
+  const filtered = pixels.filter(
+    (p) =>
+      p.name.toLowerCase().includes(query.toLowerCase()) ||
+      p.pixelId.includes(query),
   );
 
-  useEffect(() => {
-    if (productId) {
-      shopify.toast.show("Product created");
-    }
-  }, [productId, shopify]);
-  const generateProduct = () => fetcher.submit({}, { method: "POST" });
+  const submit = (fields: Record<string, string>) =>
+    fetcher.submit(fields, { method: "post" });
 
   return (
-    <Page>
-      <TitleBar title="Remix app template">
-        <button variant="primary" onClick={generateProduct}>
-          Generate a product
-        </button>
-      </TitleBar>
-      <BlockStack gap="500">
-        <Layout>
-          <Layout.Section>
-            <Card>
-              <BlockStack gap="500">
-                <BlockStack gap="200">
-                  <Text as="h2" variant="headingMd">
-                    Congrats on creating a new Shopify app 🎉
+    <Frame>
+      <Page
+        title="Facebook Pixel & CAPI"
+        primaryAction={{ content: "Add pixel", url: "/app/pixels/new" }}
+      >
+        <Card padding="0">
+          <div style={{ padding: "12px 16px" }}>
+            <TextField
+              label="Search"
+              labelHidden
+              value={query}
+              onChange={setQuery}
+              placeholder="Search by pixel name, pixel ID"
+              autoComplete="off"
+            />
+          </div>
+          <IndexTable
+            itemCount={filtered.length}
+            selectable={false}
+            headings={[
+              { title: "Active" },
+              { title: "Pixel ID" },
+              { title: "Pixel name" },
+              { title: "Conversion API" },
+              { title: "Actions" },
+            ]}
+            emptyState={
+              <div style={{ padding: 32, textAlign: "center" }}>
+                No pixels found
+              </div>
+            }
+          >
+            {filtered.map((p, i) => (
+              <IndexTable.Row id={p.id} key={p.id} position={i}>
+                <IndexTable.Cell>
+                  <Checkbox
+                    label="Active"
+                    labelHidden
+                    checked={p.active}
+                    onChange={(v) =>
+                      submit({
+                        _action: "toggleActive",
+                        id: p.id,
+                        value: String(v),
+                      })
+                    }
+                  />
+                </IndexTable.Cell>
+                <IndexTable.Cell>
+                  <Text as="span" tone="subdued">
+                    <code>{p.pixelId}</code>
                   </Text>
-                  <Text variant="bodyMd" as="p">
-                    This embedded app template uses{" "}
-                    <Link
-                      url="https://shopify.dev/docs/apps/tools/app-bridge"
-                      target="_blank"
-                      removeUnderline
-                    >
-                      App Bridge
-                    </Link>{" "}
-                    interface examples like an{" "}
-                    <Link url="/app/additional" removeUnderline>
-                      additional page in the app nav
-                    </Link>
-                    , as well as an{" "}
-                    <Link
-                      url="https://shopify.dev/docs/api/admin-graphql"
-                      target="_blank"
-                      removeUnderline
-                    >
-                      Admin GraphQL
-                    </Link>{" "}
-                    mutation demo, to provide a starting point for app
-                    development.
+                </IndexTable.Cell>
+                <IndexTable.Cell>
+                  <Text as="span" fontWeight="medium">
+                    {p.name}
                   </Text>
-                </BlockStack>
-                <BlockStack gap="200">
-                  <Text as="h3" variant="headingMd">
-                    Get started with products
-                  </Text>
-                  <Text as="p" variant="bodyMd">
-                    Generate a product with GraphQL and get the JSON output for
-                    that product. Learn more about the{" "}
-                    <Link
-                      url="https://shopify.dev/docs/api/admin-graphql/latest/mutations/productCreate"
-                      target="_blank"
-                      removeUnderline
-                    >
-                      productCreate
-                    </Link>{" "}
-                    mutation in our API references.
-                  </Text>
-                </BlockStack>
-                <InlineStack gap="300">
-                  <Button loading={isLoading} onClick={generateProduct}>
-                    Generate a product
-                  </Button>
-                  {fetcher.data?.product && (
+                </IndexTable.Cell>
+                <IndexTable.Cell>
+                  <Checkbox
+                    label="CAPI"
+                    labelHidden
+                    checked={p.capiEnabled}
+                    onChange={(v) =>
+                      submit({
+                        _action: "toggleCapi",
+                        id: p.id,
+                        value: String(v),
+                      })
+                    }
+                  />
+                </IndexTable.Cell>
+                <IndexTable.Cell>
+                  <InlineStack gap="200">
+                    <PolarisLink url={`/app/pixels/${p.id}`}>Edit</PolarisLink>
                     <Button
-                      url={`shopify:admin/products/${productId}`}
-                      target="_blank"
                       variant="plain"
+                      tone="critical"
+                      onClick={() => setDeleteId(p.id)}
                     >
-                      View product
+                      Delete
                     </Button>
-                  )}
-                </InlineStack>
-                {fetcher.data?.product && (
-                  <>
-                    <Text as="h3" variant="headingMd">
-                      {" "}
-                      productCreate mutation
-                    </Text>
-                    <Box
-                      padding="400"
-                      background="bg-surface-active"
-                      borderWidth="025"
-                      borderRadius="200"
-                      borderColor="border"
-                      overflowX="scroll"
-                    >
-                      <pre style={{ margin: 0 }}>
-                        <code>
-                          {JSON.stringify(fetcher.data.product, null, 2)}
-                        </code>
-                      </pre>
-                    </Box>
-                    <Text as="h3" variant="headingMd">
-                      {" "}
-                      productVariantsBulkUpdate mutation
-                    </Text>
-                    <Box
-                      padding="400"
-                      background="bg-surface-active"
-                      borderWidth="025"
-                      borderRadius="200"
-                      borderColor="border"
-                      overflowX="scroll"
-                    >
-                      <pre style={{ margin: 0 }}>
-                        <code>
-                          {JSON.stringify(fetcher.data.variant, null, 2)}
-                        </code>
-                      </pre>
-                    </Box>
-                  </>
-                )}
-              </BlockStack>
-            </Card>
-          </Layout.Section>
-          <Layout.Section variant="oneThird">
-            <BlockStack gap="500">
-              <Card>
-                <BlockStack gap="200">
-                  <Text as="h2" variant="headingMd">
-                    App template specs
-                  </Text>
-                  <BlockStack gap="200">
-                    <InlineStack align="space-between">
-                      <Text as="span" variant="bodyMd">
-                        Framework
-                      </Text>
-                      <Link
-                        url="https://remix.run"
-                        target="_blank"
-                        removeUnderline
-                      >
-                        Remix
-                      </Link>
-                    </InlineStack>
-                    <InlineStack align="space-between">
-                      <Text as="span" variant="bodyMd">
-                        Database
-                      </Text>
-                      <Link
-                        url="https://www.prisma.io/"
-                        target="_blank"
-                        removeUnderline
-                      >
-                        Prisma
-                      </Link>
-                    </InlineStack>
-                    <InlineStack align="space-between">
-                      <Text as="span" variant="bodyMd">
-                        Interface
-                      </Text>
-                      <span>
-                        <Link
-                          url="https://polaris.shopify.com"
-                          target="_blank"
-                          removeUnderline
-                        >
-                          Polaris
-                        </Link>
-                        {", "}
-                        <Link
-                          url="https://shopify.dev/docs/apps/tools/app-bridge"
-                          target="_blank"
-                          removeUnderline
-                        >
-                          App Bridge
-                        </Link>
-                      </span>
-                    </InlineStack>
-                    <InlineStack align="space-between">
-                      <Text as="span" variant="bodyMd">
-                        API
-                      </Text>
-                      <Link
-                        url="https://shopify.dev/docs/api/admin-graphql"
-                        target="_blank"
-                        removeUnderline
-                      >
-                        GraphQL API
-                      </Link>
-                    </InlineStack>
-                  </BlockStack>
-                </BlockStack>
-              </Card>
-              <Card>
-                <BlockStack gap="200">
-                  <Text as="h2" variant="headingMd">
-                    Next steps
-                  </Text>
-                  <List>
-                    <List.Item>
-                      Build an{" "}
-                      <Link
-                        url="https://shopify.dev/docs/apps/getting-started/build-app-example"
-                        target="_blank"
-                        removeUnderline
-                      >
-                        {" "}
-                        example app
-                      </Link>{" "}
-                      to get started
-                    </List.Item>
-                    <List.Item>
-                      Explore Shopify’s API with{" "}
-                      <Link
-                        url="https://shopify.dev/docs/apps/tools/graphiql-admin-api"
-                        target="_blank"
-                        removeUnderline
-                      >
-                        GraphiQL
-                      </Link>
-                    </List.Item>
-                  </List>
-                </BlockStack>
-              </Card>
-            </BlockStack>
-          </Layout.Section>
-        </Layout>
-      </BlockStack>
-    </Page>
+                  </InlineStack>
+                </IndexTable.Cell>
+              </IndexTable.Row>
+            ))}
+          </IndexTable>
+        </Card>
+
+        <Modal
+          open={deleteId !== null}
+          onClose={() => setDeleteId(null)}
+          title="Delete pixel?"
+          primaryAction={{
+            content: "Delete pixel",
+            destructive: true,
+            onAction: () => {
+              if (deleteId) submit({ _action: "delete", id: deleteId });
+              setDeleteId(null);
+            },
+          }}
+          secondaryActions={[
+            { content: "Cancel", onAction: () => setDeleteId(null) },
+          ]}
+        >
+          <Modal.Section>
+            <Text as="p">
+              This pixel will be permanently removed and tracking will stop
+              immediately. This action cannot be undone.
+            </Text>
+          </Modal.Section>
+        </Modal>
+
+        {toast && <Toast content={toast} onDismiss={() => setToast(null)} />}
+      </Page>
+    </Frame>
   );
 }
