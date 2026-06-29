@@ -8,6 +8,7 @@ export default async function globalSetup() {
     "mysql://root:@127.0.0.1:3306/facebook_pixel_e2e";
   const prisma = new PrismaClient({ datasources: { db: { url } } });
   try {
+    await prisma.capiEventLog.deleteMany({});
     await prisma.pixel.deleteMany({});
   } finally {
     await prisma.$disconnect();
