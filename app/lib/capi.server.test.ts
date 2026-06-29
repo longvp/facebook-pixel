@@ -26,7 +26,7 @@ describe("capi", () => {
 
   it("POSTs to the graph endpoint with the pixel id", async () => {
     const fetchMock = vi.fn(
-      async () =>
+      async (..._args: any[]) =>
         new Response(JSON.stringify({ events_received: 1 }), { status: 200 }),
     );
     vi.stubGlobal("fetch", fetchMock);
