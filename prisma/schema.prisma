@@ -55,3 +55,19 @@ model WebPixelConfig {
   webPixelId String   @db.VarChar(255)
   updatedAt  DateTime @updatedAt
 }
+
+model CapiEventLog {
+  id        String   @id @default(cuid())
+  shop      String   @db.VarChar(255)
+  pixelId   String   @db.VarChar(32)
+  eventName String   @db.VarChar(64)
+  eventId   String   @db.VarChar(128)
+  value     Float?
+  currency  String?  @db.VarChar(8)
+  status    String   @db.VarChar(16)
+  response  String?  @db.Text
+  createdAt DateTime @default(now())
+
+  @@index([shop])
+  @@index([shop, eventName])
+}
