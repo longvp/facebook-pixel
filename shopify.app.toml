@@ -7,7 +7,9 @@ name = "pixel-scaffold"
 
 [access_scopes]
 # Learn more at https://shopify.dev/docs/apps/tools/cli/configuration#access_scopes
-scopes = "write_products,read_orders"
+# TODO: add back ",read_orders" after granting Protected customer data access
+# in Partner Dashboard (needed for the orders/create webhook below).
+scopes = "write_products"
 
 [webhooks]
 api_version = "2026-07"
@@ -20,9 +22,13 @@ api_version = "2026-07"
   uri = "/webhooks/app/scopes_update"
   topics = [ "app/scopes_update" ]
 
-  [[webhooks.subscriptions]]
-  uri = "/webhooks/orders/create"
-  topics = [ "orders/create" ]
+  # TODO: re-enable after granting "Protected customer data access" in Partner
+  # Dashboard (orders/create carries PII). The route handler already exists at
+  # app/routes/webhooks.orders.create.tsx. Also re-add the read_orders scope above.
+  # See https://shopify.dev/docs/apps/launch/protected-customer-data
+  # [[webhooks.subscriptions]]
+  # uri = "/webhooks/orders/create"
+  # topics = [ "orders/create" ]
 
 [auth]
 redirect_urls = [ "https://example.com/api/auth" ]
