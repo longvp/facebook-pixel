@@ -19,7 +19,7 @@ import {
 } from "@shopify/polaris";
 import { useEffect, useState } from "react";
 import { requireAdmin } from "../lib/auth.server";
-import { listPixels, deletePixel } from "../models/pixel.server";
+import { listPixels, deletePixel, updatePixel } from "../models/pixel.server";
 import { syncWebPixel } from "../lib/webPixel.server";
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   const { session } = await requireAdmin(request);
@@ -30,15 +30,19 @@ export const action = async ({ request }: ActionFunctionArgs) => {
   const { session, admin } = await requireAdmin(request);
   const form = await request.formData();
   const id = String(form.get("id"));
+  const op = String(form.get("_action"));
   try {
-    if (String(form.get("_action")) === "delete") {
+    if (op === "delete") {
       await deletePixel(session.shop, id);
-      // Re-sync the storefront web pixel so a deleted pixel stops firing.
       await syncWebPixel(admin, session.shop).catch((e) =>
         console.error("syncWebPixel", e),
       );
+    } else if (op === "setTestCode") {
+      await updatePixel(session.shop, id, {
+        testEventCode: String(form.get("testEventCode") ?? "") || null,
+      });
     }
-    return json({ ok: true, op: "delete" });
+    return json({ ok: true, op });
   } catch (e: any) {
     return json({ ok: false, error: e.message }, { status: 400 });
   }
@@ -49,6 +53,8 @@ export default function Index() {
   const fetcher = useFetcher<typeof action>();
   const [query, setQuery] = useState("");
   const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [setupId, setSetupId] = useState<string | null>(null);
+  const [setupCode, setSetupCode] = useState("");
   const [toast, setToast] = useState<string | null>(null);
 
   // Surface action results as Polaris Toasts.
@@ -57,6 +63,7 @@ export default function Index() {
     if (fetcher.data.ok) {
       const map: Record<string, string> = {
         delete: "Pixel deleted",
+        setTestCode: "Test code updated",
       };
       setToast(map[(fetcher.data as any).op] ?? "Saved");
     } else {
@@ -97,6 +104,7 @@ export default function Index() {
               { title: "Pixel ID" },
               { title: "Pixel name" },
               { title: "Is CAPI" },
+              { title: "Test code event" },
               { title: "Actions" },
             ]}
             emptyState={
@@ -123,6 +131,35 @@ export default function Index() {
                   ) : (
                     <Badge>false</Badge>
                   )}
+                </IndexTable.Cell>
+                <IndexTable.Cell>
+                  <InlineStack gap="200" blockAlign="center">
+                    {p.capiEnabled ? (
+                      <Text
+                        as="span"
+                        tone={p.testEventCode ? undefined : "subdued"}
+                      >
+                        {p.testEventCode ? (
+                          <code>{p.testEventCode}</code>
+                        ) : (
+                          "Not set"
+                        )}
+                      </Text>
+                    ) : (
+                      <Text as="span" tone="subdued">
+                        —
+                      </Text>
+                    )}
+                    <Button
+                      disabled={!p.capiEnabled}
+                      onClick={() => {
+                        setSetupId(p.id);
+                        setSetupCode(p.testEventCode ?? "");
+                      }}
+                    >
+                      Setup
+                    </Button>
+                  </InlineStack>
                 </IndexTable.Cell>
                 <IndexTable.Cell>
                   <InlineStack gap="200">
@@ -158,6 +195,38 @@ export default function Index() {
               This pixel will be permanently removed. This action cannot be
               undone.
             </Text>
+          </Modal.Section>
+        </Modal>
+
+        <Modal
+          open={setupId !== null}
+          onClose={() => setSetupId(null)}
+          title="Set up test code"
+          primaryAction={{
+            content: "Save",
+            onAction: () => {
+              if (setupId)
+                submit({
+                  _action: "setTestCode",
+                  id: setupId,
+                  testEventCode: setupCode,
+                });
+              setSetupId(null);
+            },
+          }}
+          secondaryActions={[
+            { content: "Cancel", onAction: () => setSetupId(null) },
+          ]}
+        >
+          <Modal.Section>
+            <TextField
+              label="Test event code"
+              value={setupCode}
+              onChange={setSetupCode}
+              maxLength={20}
+              autoComplete="off"
+              placeholder="e.g. TEST12345"
+            />
           </Modal.Section>
         </Modal>
 

@@ -76,3 +76,19 @@ test("save a pixel with CAPI enabled + token", async ({ page }) => {
   await page.getByRole("button", { name: "Save pixel" }).click();
   await expect(page.getByText("Capi Pixel")).toBeVisible();
 });
+
+test("set a test event code via the Setup modal", async ({ page }) => {
+  const id = uniqueId(7);
+  await page.getByRole("link", { name: "Add pixel" }).click();
+  await page.getByLabel("Pixel name").fill("TestCode Pixel");
+  await page.getByLabel("Pixel ID").fill(id);
+  await page.getByRole("checkbox", { name: "Enable CAPI" }).check();
+  await page.getByLabel("Facebook access token").fill("test-token");
+  await page.getByRole("button", { name: "Save pixel" }).click();
+  await expect(page.getByText("TestCode Pixel")).toBeVisible();
+
+  await page.getByRole("button", { name: "Setup" }).first().click();
+  await page.getByLabel("Test event code").fill("TEST99");
+  await page.getByRole("dialog").getByRole("button", { name: "Save" }).click();
+  await expect(page.getByText("TEST99")).toBeVisible();
+});
