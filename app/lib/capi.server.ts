@@ -13,6 +13,8 @@ export type CapiEventInput = {
   userAgent?: string;
   currency?: string;
   value?: number;
+  fbp?: string;
+  fbc?: string;
 };
 
 export type CapiEvent = {
@@ -38,6 +40,8 @@ export function buildEvent(input: CapiEventInput): CapiEvent {
   if (input.phone) user_data.ph = [hashPII(input.phone)];
   if (input.clientIp) user_data.client_ip_address = input.clientIp;
   if (input.userAgent) user_data.client_user_agent = input.userAgent;
+  if (input.fbp) user_data.fbp = input.fbp;
+  if (input.fbc) user_data.fbc = input.fbc;
 
   const custom_data: Record<string, unknown> = {};
   if (input.currency) custom_data.currency = input.currency;

@@ -43,4 +43,16 @@ describe("capi", () => {
     const body = JSON.parse((fetchMock.mock.calls[0][1] as any).body);
     expect(body.test_event_code).toBe("TEST1");
   });
+
+  it("includes fbp/fbc un-hashed in user_data", () => {
+    const e = buildEvent({
+      eventName: "Purchase",
+      eventTime: 1,
+      eventId: "x",
+      fbp: "fb.1.123.456",
+      fbc: "fb.1.123.abc",
+    });
+    expect(e.user_data.fbp).toBe("fb.1.123.456");
+    expect(e.user_data.fbc).toBe("fb.1.123.abc");
+  });
 });
