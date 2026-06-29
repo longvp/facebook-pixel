@@ -39,11 +39,6 @@ Shopify embedded app to manage Facebook Pixels & the Conversions API (CAPI).
    design, not memory.
 2. **TDD — write the test first.** For every feature or bugfix, write a failing
    test before the implementation, watch it fail, then make it pass.
-3. **Never commit or push autonomously.** You may edit files freely (including on
-   `main`), but do NOT run `git commit` or `git push` on your own initiative — only
-   when the user explicitly asks. A `PreToolUse` guard hook
-   (`.claude/hooks/guard-git.mjs`) forces a confirmation prompt before any
-   `git commit`/`git push`, so it can never happen silently.
 
 ## Development flow (slash commands)
 `/brainstorm` → `/plan` → `/userstories` → `/classify` → `/execute` → `/verify`.
