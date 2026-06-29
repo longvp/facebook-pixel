@@ -20,7 +20,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     await syncWebPixel(admin, session.shop).catch((e) =>
       console.error("syncWebPixel", e),
     );
-    return redirect("/app");
+    return redirect("/app/pixels");
   } catch (e: any) {
     return json({ error: e.message }, { status: 400 });
   }
@@ -29,7 +29,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 export default function NewPixel() {
   const data = useActionData<typeof action>();
   return (
-    <Page title="Add Facebook pixel" backAction={{ url: "/app" }}>
+    <Page title="Add Facebook pixel" backAction={{ url: "/app/pixels" }}>
       <PixelForm mode="new" error={data?.error} />
     </Page>
   );

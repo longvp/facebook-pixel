@@ -3,7 +3,7 @@ import { test, expect } from "@playwright/test";
 const uniqueId = (i: number) => `99${i}${Date.now().toString().slice(-7)}`;
 
 test.beforeEach(async ({ page }) => {
-  await page.goto("/app");
+  await page.goto("/app/pixels");
 });
 
 test("US-1/US-3: add a pixel, then it appears in the list", async ({
