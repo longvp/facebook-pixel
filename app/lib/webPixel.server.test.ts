@@ -52,7 +52,7 @@ describe("syncWebPixel", () => {
     const [query, opts] = a.graphql.mock.calls[0];
     expect(query).toContain("webPixelCreate");
     expect(JSON.parse(opts.variables.settings)).toEqual({
-      pixelIds: "111,333",
+      pixelIds: ["111", "333"],
     });
     expect(state.upserts[0]).toEqual({
       shop: "s.myshopify.com",

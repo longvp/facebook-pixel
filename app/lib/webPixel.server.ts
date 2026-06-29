@@ -33,10 +33,7 @@ const UPDATE = `#graphql
 
 async function buildSettings(shop: string): Promise<string> {
   const pixels = await listPixels(shop);
-  const pixelIds = pixels
-    .filter((p) => p.active)
-    .map((p) => p.pixelId)
-    .join(",");
+  const pixelIds = pixels.filter((p) => p.active).map((p) => p.pixelId);
   return JSON.stringify({ pixelIds });
 }
 
@@ -45,7 +42,14 @@ export async function syncWebPixel(
   shop: string,
 ): Promise<void> {
   if (!admin) return;
+  if (!(prisma as any).webPixelConfig) {
+    console.error(
+      "[syncWebPixel] Prisma client is missing WebPixelConfig — run `npx prisma generate` and RESTART the dev server.",
+    );
+    return;
+  }
   const settings = await buildSettings(shop);
+  console.log("[syncWebPixel] shop=%s settings=%s", shop, settings);
 
   const config = await prisma.webPixelConfig.findUnique({ where: { shop } });
 
@@ -54,13 +58,19 @@ export async function syncWebPixel(
       variables: { id: config.webPixelId, settings },
     });
     const json: any = await res.json();
+    console.log(
+      "[syncWebPixel] webPixelUpdate response:",
+      JSON.stringify(json),
+    );
     const errs = json?.data?.webPixelUpdate?.userErrors ?? [];
-    if (errs.length) console.warn("webPixelUpdate:", errs);
+    if (errs.length)
+      console.warn("[syncWebPixel] webPixelUpdate userErrors:", errs);
     return;
   }
 
   const res = await admin.graphql(CREATE, { variables: { settings } });
   const json: any = await res.json();
+  console.log("[syncWebPixel] webPixelCreate response:", JSON.stringify(json));
   const id = json?.data?.webPixelCreate?.webPixel?.id;
   if (id) {
     await prisma.webPixelConfig.upsert({
@@ -68,11 +78,13 @@ export async function syncWebPixel(
       create: { shop, webPixelId: id },
       update: { webPixelId: id },
     });
+    console.log("[syncWebPixel] stored webPixelId=%s", id);
   } else {
-    // Already exists (id lost) or failed — log so it can be handled manually.
     console.warn(
-      "webPixelCreate:",
-      json?.data?.webPixelCreate?.userErrors ?? json,
+      "[syncWebPixel] webPixelCreate failed:",
+      JSON.stringify(
+        json?.data?.webPixelCreate?.userErrors ?? json?.errors ?? json,
+      ),
     );
   }
 }

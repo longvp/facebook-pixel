@@ -5,9 +5,10 @@ import { register } from "@shopify/web-pixels-extension";
 // (facebook.com/tr) instead of the classic fbq snippet, attaching an `eid`
 // (event id) that matches the server-side CAPI event for deduplication.
 register(({ analytics, settings }) => {
-  const pixelIds = String(settings.pixelIds || "")
-    .split(",")
-    .map((s) => s.trim())
+  // settings.pixelIds is an array of strings; tolerate a CSV string too.
+  const raw = settings.pixelIds;
+  const pixelIds = (Array.isArray(raw) ? raw : String(raw || "").split(","))
+    .map((s) => String(s).trim())
     .filter(Boolean);
   if (!pixelIds.length) return;
 
