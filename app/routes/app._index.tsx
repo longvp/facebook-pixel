@@ -26,6 +26,7 @@ import {
   setCapiEnabled,
   deletePixel,
 } from "../models/pixel.server";
+import { syncWebPixel } from "../lib/webPixel.server";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   const { session } = await requireAdmin(request);
@@ -33,7 +34,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 };
 
 export const action = async ({ request }: ActionFunctionArgs) => {
-  const { session } = await requireAdmin(request);
+  const { session, admin } = await requireAdmin(request);
   const form = await request.formData();
   const id = String(form.get("id"));
   const op = String(form.get("_action"));
@@ -43,6 +44,9 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     if (op === "toggleCapi")
       await setCapiEnabled(session.shop, id, form.get("value") === "true");
     if (op === "delete") await deletePixel(session.shop, id);
+    await syncWebPixel(admin, session.shop).catch((e) =>
+      console.error("syncWebPixel", e),
+    );
     return json({ ok: true, op });
   } catch (e: any) {
     return json({ ok: false, error: e.message }, { status: 400 });

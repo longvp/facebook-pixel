@@ -8,6 +8,7 @@ import { useLoaderData, useActionData } from "@remix-run/react";
 import { Page } from "@shopify/polaris";
 import { requireAdmin } from "../lib/auth.server";
 import { getPixel, updatePixel } from "../models/pixel.server";
+import { syncWebPixel } from "../lib/webPixel.server";
 import { PixelForm } from "../components/PixelForm";
 
 export const loader = async ({ request, params }: LoaderFunctionArgs) => {
@@ -18,7 +19,7 @@ export const loader = async ({ request, params }: LoaderFunctionArgs) => {
 };
 
 export const action = async ({ request, params }: ActionFunctionArgs) => {
-  const { session } = await requireAdmin(request);
+  const { session, admin } = await requireAdmin(request);
   const f = await request.formData();
   try {
     await updatePixel(session.shop, params.id!, {
@@ -27,6 +28,9 @@ export const action = async ({ request, params }: ActionFunctionArgs) => {
       accessToken: (f.get("accessToken") as string) || undefined,
       testEventCode: (f.get("testEventCode") as string) || null,
     });
+    await syncWebPixel(admin, session.shop).catch((e) =>
+      console.error("syncWebPixel", e),
+    );
     return redirect("/app");
   } catch (e: any) {
     return json({ error: e.message }, { status: 400 });

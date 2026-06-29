@@ -48,3 +48,10 @@ model Pixel {
   @@unique([shop, pixelId])
   @@index([shop])
 }
+
+// One storefront web pixel per shop; we persist its id to update it later.
+model WebPixelConfig {
+  shop       String   @id @db.VarChar(255)
+  webPixelId String   @db.VarChar(255)
+  updatedAt  DateTime @updatedAt
+}
