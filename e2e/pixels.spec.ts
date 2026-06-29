@@ -60,3 +60,31 @@ test("US-5: delete asks for confirmation", async ({ page }) => {
   // the deleted pixel is gone from the list
   await expect(page.getByText("To Delete")).toHaveCount(0);
 });
+
+test("US-2: search filters the list", async ({ page }) => {
+  for (const [i, name] of [
+    [61, "Alpha Pixel"],
+    [62, "Beta Pixel"],
+  ] as const) {
+    await page.getByRole("link", { name: "Add pixel" }).click();
+    await page.getByLabel("Pixel name").fill(name);
+    await page.getByLabel("Pixel ID").fill(uniqueId(i));
+    await page.getByRole("button", { name: "Save pixel" }).click();
+    await expect(page.getByText(name)).toBeVisible();
+  }
+  await page.getByPlaceholder("Search by pixel name, pixel ID").fill("Alpha");
+  await expect(page.getByText("Alpha Pixel")).toBeVisible();
+  await expect(page.getByText("Beta Pixel")).toHaveCount(0);
+});
+
+test("US-6: toggle a pixel inactive", async ({ page }) => {
+  await page.getByRole("link", { name: "Add pixel" }).click();
+  await page.getByLabel("Pixel name").fill("Toggle Me");
+  await page.getByLabel("Pixel ID").fill(uniqueId(8));
+  await page.getByRole("button", { name: "Save pixel" }).click();
+  await expect(page.getByText("Toggle Me")).toBeVisible();
+  const active = page.getByRole("checkbox", { name: "Active" }).first();
+  await expect(active).toBeChecked();
+  await active.click();
+  await expect(active).not.toBeChecked();
+});
