@@ -20,7 +20,12 @@ export function PixelForm({
   error,
 }: {
   mode: "new" | "edit";
-  initial?: PixelView;
+  // Only the fields the form reads — JSON-safe, so a serialized loader value
+  // (JsonifyObject<PixelView>) assigns cleanly.
+  initial?: Pick<
+    PixelView,
+    "name" | "pixelId" | "capiEnabled" | "testEventCode" | "hasAccessToken"
+  >;
   error?: string;
 }) {
   const [name, setName] = useState(initial?.name ?? "");

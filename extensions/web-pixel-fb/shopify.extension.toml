@@ -1,0 +1,15 @@
+api_version = "2026-07"
+
+[[extensions]]
+name = "Facebook Web Pixel"
+handle = "web-pixel-fb"
+type = "web_pixel_extension"
+runtime_context = "strict"
+
+  [extensions.settings]
+  type = "object"
+
+    [extensions.settings.fields.pixelIds]
+    name = "Active Facebook Pixel IDs"
+    description = "Comma-separated Facebook Pixel IDs to fire on the storefront."
+    type = "single_line_text_field"

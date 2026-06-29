@@ -1,38 +1,28 @@
 # Learn more about configuring your app at https://shopify.dev/docs/apps/tools/cli/configuration
 
 client_id = "e320a12e787c3ae478da1b672ae8f4af"
+name = "pixel-scaffold"
 application_url = "https://example.com"
 embedded = true
-name = "pixel-scaffold"
 
-[access_scopes]
-# Learn more at https://shopify.dev/docs/apps/tools/cli/configuration#access_scopes
-# TODO: add back ",read_orders" after granting Protected customer data access
-# in Partner Dashboard (needed for the orders/create webhook below).
-scopes = "write_products"
+[build]
+automatically_update_urls_on_dev = true
+include_config_on_deploy = true
 
 [webhooks]
 api_version = "2026-07"
 
   [[webhooks.subscriptions]]
-  uri = "/webhooks/app/uninstalled"
-  topics = [ "app/uninstalled" ]
-
-  [[webhooks.subscriptions]]
   uri = "/webhooks/app/scopes_update"
   topics = [ "app/scopes_update" ]
 
-  # TODO: re-enable after granting "Protected customer data access" in Partner
-  # Dashboard (orders/create carries PII). The route handler already exists at
-  # app/routes/webhooks.orders.create.tsx. Also re-add the read_orders scope above.
-  # See https://shopify.dev/docs/apps/launch/protected-customer-data
-  # [[webhooks.subscriptions]]
-  # uri = "/webhooks/orders/create"
-  # topics = [ "orders/create" ]
+  [[webhooks.subscriptions]]
+  uri = "/webhooks/app/uninstalled"
+  topics = [ "app/uninstalled" ]
+
+[access_scopes]
+# Learn more at https://shopify.dev/docs/apps/tools/cli/configuration#access_scopes
+scopes = "write_products"
 
 [auth]
 redirect_urls = [ "https://example.com/api/auth" ]
-
-[build]
-include_config_on_deploy = true
-automatically_update_urls_on_dev = true
