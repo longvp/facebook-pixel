@@ -9,6 +9,7 @@ import {
   Card,
   IndexTable,
   Button,
+  Badge,
   TextField,
   Text,
   InlineStack,
@@ -95,6 +96,7 @@ export default function Index() {
             headings={[
               { title: "Pixel ID" },
               { title: "Pixel name" },
+              { title: "Is CAPI" },
               { title: "Actions" },
             ]}
             emptyState={
@@ -114,6 +116,13 @@ export default function Index() {
                   <Text as="span" fontWeight="medium">
                     {p.name}
                   </Text>
+                </IndexTable.Cell>
+                <IndexTable.Cell>
+                  {p.capiEnabled ? (
+                    <Badge tone="success">true</Badge>
+                  ) : (
+                    <Badge>false</Badge>
+                  )}
                 </IndexTable.Cell>
                 <IndexTable.Cell>
                   <InlineStack gap="200">
