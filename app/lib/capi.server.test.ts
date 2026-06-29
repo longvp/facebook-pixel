@@ -1,6 +1,11 @@
-import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect, vi, beforeEach } from "vitest";
 import crypto from "node:crypto";
-import { hashPII, buildEvent, sendEvents } from "./capi.server";
+import {
+  hashPII,
+  buildEvent,
+  sendEvents,
+  validateCapiToken,
+} from "./capi.server";
 
 const sha = (v: string) => crypto.createHash("sha256").update(v).digest("hex");
 
@@ -54,5 +59,50 @@ describe("capi", () => {
     });
     expect(e.user_data.fbp).toBe("fb.1.123.456");
     expect(e.user_data.fbc).toBe("fb.1.123.abc");
+  });
+});
+
+describe("validateCapiToken", () => {
+  beforeEach(() => {
+    delete process.env.E2E;
+  });
+
+  it("returns ok when the test event is accepted", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(
+        async () =>
+          new Response(JSON.stringify({ events_received: 1 }), { status: 200 }),
+      ),
+    );
+    expect(await validateCapiToken("PIX", "tok")).toEqual({ ok: true });
+  });
+
+  it("returns the Meta error message when rejected", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(
+        async () =>
+          new Response(
+            JSON.stringify({
+              error: { message: "Invalid OAuth access token." },
+            }),
+            {
+              status: 400,
+            },
+          ),
+      ),
+    );
+    const r = await validateCapiToken("PIX", "tok");
+    expect(r.ok).toBe(false);
+    expect(r.error).toContain("Invalid OAuth access token");
+  });
+
+  it("skips the network and returns ok under E2E", async () => {
+    process.env.E2E = "1";
+    const fetchMock = vi.fn();
+    vi.stubGlobal("fetch", fetchMock);
+    expect(await validateCapiToken("PIX", "tok")).toEqual({ ok: true });
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 });

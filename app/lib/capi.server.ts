@@ -76,3 +76,24 @@ export async function sendEvents(
   const body = await res.json().catch(() => ({}));
   return { ok: res.ok, status: res.status, body };
 }
+
+export async function validateCapiToken(
+  pixelId: string,
+  token: string,
+  testEventCode?: string | null,
+): Promise<{ ok: boolean; error?: string }> {
+  // No network in E2E — the requireAdmin shim pattern.
+  if (process.env.E2E === "1") return { ok: true };
+
+  const event = buildEvent({
+    eventName: "PageView",
+    eventTime: Math.floor(Date.now() / 1000),
+    eventId: `validate-${Date.now()}`,
+  });
+  const res = await sendEvents(pixelId, token, [event], testEventCode);
+  if (res.ok) return { ok: true };
+  const message =
+    res.body?.error?.message ||
+    `Token validation failed (status ${res.status})`;
+  return { ok: false, error: message };
+}
