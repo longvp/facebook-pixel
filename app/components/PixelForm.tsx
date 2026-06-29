@@ -129,7 +129,7 @@ export function PixelForm({
 
         <Box>
           <InlineStack align="end" gap="200">
-            <Button url="/app">Discard</Button>
+            <Button url="/app/pixels">Discard</Button>
             <Button submit variant="primary">
               Save pixel
             </Button>
