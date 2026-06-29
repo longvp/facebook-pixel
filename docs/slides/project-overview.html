@@ -124,12 +124,11 @@
     <div class="deck" id="deck">
       <div class="topbar">
         <div class="brand"><div class="logo">FP</div> Facebook Pixel &amp; CAPI · Shopify Embedded App</div>
-        <div>Built with Claude Code</div>
       </div>
 
       <!-- 1. TITLE -->
       <section class="slide active">
-        <div class="kicker">Shopify App · Báo cáo dự án</div>
+        <div class="kicker">Shopify App ·</div>
         <h1>Facebook Pixel &amp; Conversions API<br />cho Shopify</h1>
         <p class="sub">
           App nhúng (embedded) giúp merchant quản lý Facebook Pixel &amp; Conversions API (CAPI):
@@ -251,6 +250,26 @@ facebook-pixel/
         </div>
       </section>
 
+      <!-- VALUE — App giúp ích gì -->
+      <section class="slide">
+        <div class="kicker"><i class="dot b-fb"></i>&nbsp; Phần 2 · App giúp ích gì</div>
+        <div class="two">
+          <div>
+            <h2>Vấn đề &amp; giá trị</h2>
+            <p class="sub" style="margin-top:10px">Từ iOS 14.5, trình chặn quảng cáo và việc khai tử cookie bên thứ ba, <span class="hl">pixel phía trình duyệt mất rất nhiều sự kiện</span> → Facebook Ads tối ưu kém, đo lường chuyển đổi sai.</p>
+            <div class="flow" style="flex-direction:column; gap:10px; margin-top:18px">
+              <div class="step"><b>❌ Trước</b><small>Chỉ có browser pixel → bị chặn / mất event → ROAS &amp; attribution không chính xác</small></div>
+              <div class="step"><b>✅ Với app</b><small>Gửi song song qua <span class="hl">Conversions API</span> (server → Meta), dedup theo event_id → khôi phục dữ liệu chuyển đổi</small></div>
+            </div>
+          </div>
+          <div class="grid">
+            <div class="card"><h3><span class="dot b-gd"></span> Khôi phục dữ liệu</h3><p>Server-side CAPI vượt giới hạn trình duyệt → ít mất event, tối ưu quảng cáo tốt hơn.</p></div>
+            <div class="card"><h3><span class="dot b-fb"></span> Dễ vận hành</h3><p>Merchant tự CRUD pixel, bật CAPI, dán token (được validate ngay), đặt test code — không cần lập trình.</p></div>
+            <div class="card"><h3><span class="dot b-sh"></span> Minh bạch</h3><p>Dashboard đếm event theo từng pixel + audit log → thấy rõ hệ thống đang chạy đúng.</p></div>
+          </div>
+        </div>
+      </section>
+
       <!-- 5. AI CLAUDE — FLOW -->
       <section class="slide">
         <div class="kicker"><i class="dot b-ai"></i>&nbsp; Phần 3 · Kiến thức AI Claude trong dự án</div>
@@ -294,6 +313,20 @@ facebook-pixel/
               <li class="quote">Web pixel lỗi <b>RestrictedUrlError</b> (sandbox chặn same-origin) → đổi sang POST cross-origin tới app. <span class="ok">✓ CAPI hoạt động</span></li>
             </ul>
           </div>
+        </div>
+      </section>
+
+      <!-- RESULTS — Kết quả đạt được -->
+      <section class="slide">
+        <div class="kicker"><i class="dot b-gd"></i>&nbsp; Phần 4 · Kết quả đạt được</div>
+        <h2>Đã hoàn thành &amp; kiểm chứng</h2>
+        <div class="grid g3" style="margin-top:16px">
+          <div class="card"><h3><span class="dot b-gd"></span> Test xanh</h3><p><span class="hl">Unit 19/19</span> (Vitest) · <span class="hl">E2E 7/7</span> (Playwright) — mọi tính năng đều có kiểm thử tự động.</p></div>
+          <div class="card"><h3><span class="dot b-fb"></span> Tính năng đã giao</h3><p>CRUD pixel · CAPI client + server · validate token · test-code modal · dashboard · SaveBar · audit log.</p></div>
+          <div class="card"><h3><span class="dot b-sh"></span> Tích hợp thật</h3><p>Web Pixel đăng ký thành công (webPixelCreate) · CAPI gửi thật lên Meta Graph API → <span class="hl">events_received: 1</span>.</p></div>
+          <div class="card"><h3><span class="dot b-wn"></span> Bug truy tận gốc</h3><p>Token "Invalid parameter" (user_data rỗng) · RestrictedUrlError same-origin · Prisma/Vite cache — đều tìm root cause thật, không vá tạm.</p></div>
+          <div class="card"><h3><span class="dot b-ai"></span> Lưu vết quy trình</h3><p>Mỗi tính năng có spec + plan + flow docs; commit theo conventional commits; review 2 lớp.</p></div>
+          <div class="card"><h3><span class="dot b-fb"></span> Sẵn sàng mở rộng</h3><p>Tách lớp rõ ràng, server-only an toàn, tunnel ổn định (ngrok) → dễ thêm event / tính năng mới.</p></div>
         </div>
       </section>
 
