@@ -19,18 +19,24 @@ import {
 import { useEffect, useState } from "react";
 import { requireAdmin } from "../lib/auth.server";
 import { listPixels, deletePixel } from "../models/pixel.server";
+import { syncWebPixel } from "../lib/webPixel.server";
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   const { session } = await requireAdmin(request);
   return json({ pixels: await listPixels(session.shop) });
 };
 
 export const action = async ({ request }: ActionFunctionArgs) => {
-  const { session } = await requireAdmin(request);
+  const { session, admin } = await requireAdmin(request);
   const form = await request.formData();
   const id = String(form.get("id"));
   try {
-    if (String(form.get("_action")) === "delete")
+    if (String(form.get("_action")) === "delete") {
       await deletePixel(session.shop, id);
+      // Re-sync the storefront web pixel so a deleted pixel stops firing.
+      await syncWebPixel(admin, session.shop).catch((e) =>
+        console.error("syncWebPixel", e),
+      );
+    }
     return json({ ok: true, op: "delete" });
   } catch (e: any) {
     return json({ ok: false, error: e.message }, { status: 400 });
