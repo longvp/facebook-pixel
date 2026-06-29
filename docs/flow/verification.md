@@ -45,10 +45,16 @@ Specs: US-1/US-3, US-3, US-4, US-7, US-5, US-2, US-6.
 These cross the browser/storefront/Facebook boundary and can't be asserted
 headlessly; verify on a development store with `shopify app dev`:
 
-- **US-8 (browser Web Pixel):** on the storefront, page view / add-to-cart /
-  checkout fire `https://www.facebook.com/tr/?...&eid=order-<id>` for each active
-  pixel. Check the Network tab or Meta Events Manager → Test events. The web pixel
-  is activated automatically by `syncWebPixel` when pixels change.
+- **US-8 (browser Web Pixel):**
+  - ✅ **Activation verified on dev store** (2026-06-29): saving a pixel calls
+    `webPixelCreate` → `webPixel.id = gid://shopify/WebPixel/2340913368`,
+    `userErrors: []`; id persisted in `WebPixelConfig`. Requires scopes
+    `write_pixels` + `read_customer_events` (Protected customer data access) and
+    `npm run deploy`.
+  - ⏳ **Storefront firing** (still manual): after `npm run deploy`, on the
+    storefront page view / add-to-cart / checkout fire
+    `https://www.facebook.com/tr/?...&eid=order-<id>` for each active pixel
+    (Network tab / Meta Events Manager → Test events).
 - **US-9 (server Purchase via webhook):** `orders/create` → server CAPI Purchase
   with matching `event_id=order-<id>` (dedup with the browser event).
   **Currently blocked:** the `orders/create` webhook + `read_orders` scope are
