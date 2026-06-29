@@ -1,4 +1,30 @@
-node_modules/
+node_modules
+.DS_Store
+
+/.cache
+/build
+/app/build
+/public/build/
+/public/_dev
+/app/public/build
+/prisma/dev.sqlite
+/prisma/dev.sqlite-journal
+database.sqlite
+
 .env
+.env.*
+
+/extensions/*/dist
+
+# Ignore shopify files created during app dev
+.shopify/*
+.shopify.lock
+
+# Playwright
+/test-results/
+/playwright-report/
+/playwright/.cache/
+
+# Project tooling
 .superpowers/
 *.log
