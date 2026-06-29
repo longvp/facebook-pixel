@@ -1,4 +1,4 @@
-import { Form } from "@remix-run/react";
+import { Form, useSubmit, useRouteLoaderData } from "@remix-run/react";
 import {
   Card,
   BlockStack,
@@ -11,8 +11,34 @@ import {
   Button,
   Box,
 } from "@shopify/polaris";
-import { useState } from "react";
+import { SaveBar, useAppBridge } from "@shopify/app-bridge-react";
+import { useEffect, useRef, useState } from "react";
 import type { PixelView } from "../models/pixel.server";
+
+// Shopify contextual SaveBar (App Bridge) — only mounted in the embedded app.
+function PixelSaveBar({
+  dirty,
+  onSave,
+  onDiscard,
+}: {
+  dirty: boolean;
+  onSave: () => void;
+  onDiscard: () => void;
+}) {
+  const shopify = useAppBridge();
+  useEffect(() => {
+    if (dirty) shopify.saveBar.show("pixel-save-bar");
+    else shopify.saveBar.hide("pixel-save-bar");
+  }, [dirty, shopify]);
+  return (
+    <SaveBar id="pixel-save-bar">
+      <button variant="primary" onClick={onSave}>
+        Save
+      </button>
+      <button onClick={onDiscard}>Discard</button>
+    </SaveBar>
+  );
+}
 
 export function PixelForm({
   mode,
@@ -42,8 +68,33 @@ export function PixelForm({
     initial?.testEventCode ?? "",
   );
 
+  const formRef = useRef<HTMLFormElement>(null);
+  const submit = useSubmit();
+
+  // App Bridge isn't loaded in E2E (Polaris-only app.tsx branch) — fall back to
+  // inline buttons there so the SaveBar (App Bridge) is never required.
+  const appData = useRouteLoaderData("routes/app") as
+    { e2e?: boolean } | undefined;
+  const e2e = appData?.e2e ?? false;
+
+  const dirty =
+    name !== (initial?.name ?? "") ||
+    pixelId !== (initial?.pixelId ?? "") ||
+    capiEnabled !== (initial?.capiEnabled ?? false) ||
+    accessToken !== (initial?.accessToken ?? "") ||
+    testEventCode !== (initial?.testEventCode ?? "");
+
+  const handleSave = () => submit(formRef.current, { method: "post" });
+  const handleDiscard = () => {
+    setName(initial?.name ?? "");
+    setPixelId(initial?.pixelId ?? "");
+    setCapiEnabled(initial?.capiEnabled ?? false);
+    setAccessToken(initial?.accessToken ?? "");
+    setTestEventCode(initial?.testEventCode ?? "");
+  };
+
   return (
-    <Form method="post">
+    <Form method="post" ref={formRef}>
       <BlockStack gap="400">
         {error && <Banner tone="critical">{error}</Banner>}
         <Card>
@@ -129,14 +180,22 @@ export function PixelForm({
           </BlockStack>
         </Card>
 
-        <Box>
-          <InlineStack align="end" gap="200">
-            <Button url="/app/pixels">Discard</Button>
-            <Button submit variant="primary">
-              Save pixel
-            </Button>
-          </InlineStack>
-        </Box>
+        {e2e ? (
+          <Box>
+            <InlineStack align="end" gap="200">
+              <Button url="/app/pixels">Discard</Button>
+              <Button submit variant="primary">
+                Save pixel
+              </Button>
+            </InlineStack>
+          </Box>
+        ) : (
+          <PixelSaveBar
+            dirty={dirty}
+            onSave={handleSave}
+            onDiscard={handleDiscard}
+          />
+        )}
       </BlockStack>
     </Form>
   );
