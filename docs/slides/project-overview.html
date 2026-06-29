@@ -1,0 +1,352 @@
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Facebook Pixel &amp; CAPI — Shopify App · Slides</title>
+    <style>
+      :root {
+        --fb: #1877f2;
+        --shopify: #00a47c;
+        --bg0: #0b1020;
+        --bg1: #131a31;
+        --card: #1a2238;
+        --line: #2a355a;
+        --text: #e8edf7;
+        --muted: #95a2c4;
+        --accent: #7aa2ff;
+        --good: #28c76f;
+        --warn: #ffb547;
+      }
+      * { box-sizing: border-box; margin: 0; padding: 0; }
+      html, body { height: 100%; }
+      body {
+        font-family: "Segoe UI", system-ui, -apple-system, Roboto, sans-serif;
+        background: radial-gradient(1200px 700px at 70% -10%, #1c2748 0%, var(--bg0) 55%);
+        color: var(--text);
+        overflow: hidden;
+      }
+      .deck { height: 100vh; width: 100vw; position: relative; }
+      .slide {
+        position: absolute; inset: 0;
+        display: none;
+        flex-direction: column;
+        justify-content: center;
+        padding: 4.5vh 7vw 9vh;
+        animation: fade .35s ease;
+      }
+      .slide.active { display: flex; }
+      @keyframes fade { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
+
+      .kicker {
+        display: inline-flex; align-items: center; gap: 8px;
+        font-size: 13px; letter-spacing: 2px; text-transform: uppercase;
+        color: var(--accent); font-weight: 700; margin-bottom: 14px;
+      }
+      .kicker::before { content: ""; width: 26px; height: 2px; background: var(--accent); }
+      h1 { font-size: clamp(28px, 4.6vw, 58px); line-height: 1.05; letter-spacing: -1px; }
+      h2 { font-size: clamp(24px, 3.4vw, 40px); letter-spacing: -.5px; margin-bottom: 6px; }
+      .sub { color: var(--muted); font-size: clamp(15px, 1.5vw, 20px); margin-top: 16px; max-width: 60ch; }
+      .pill {
+        display: inline-block; padding: 6px 12px; border-radius: 999px;
+        background: rgba(120,162,255,.12); border: 1px solid var(--line);
+        color: var(--accent); font-size: 13px; font-weight: 600; margin: 4px 6px 4px 0;
+      }
+      .grid { display: grid; gap: 16px; margin-top: 22px; }
+      .g2 { grid-template-columns: repeat(2, 1fr); }
+      .g3 { grid-template-columns: repeat(3, 1fr); }
+      .card {
+        background: linear-gradient(180deg, var(--card), #161d31);
+        border: 1px solid var(--line); border-radius: 16px; padding: 18px 20px;
+      }
+      .card h3 { font-size: 18px; margin-bottom: 8px; display: flex; align-items: center; gap: 9px; }
+      .card p, .card li { color: var(--muted); font-size: 14.5px; line-height: 1.55; }
+      .card ul { margin: 6px 0 0 18px; }
+      .dot { width: 10px; height: 10px; border-radius: 3px; display: inline-block; }
+      .b-fb { background: var(--fb); }
+      .b-sh { background: var(--shopify); }
+      .b-ai { background: #b07aff; }
+      .b-gd { background: var(--good); }
+      .b-wn { background: var(--warn); }
+
+      pre.tree {
+        background: #0d1428; border: 1px solid var(--line); border-radius: 14px;
+        padding: 18px 22px; font-family: "Cascadia Code", Consolas, monospace;
+        font-size: clamp(11px, 1.18vw, 15px); line-height: 1.5; color: #cfe0ff; overflow: auto;
+      }
+      pre.tree .c { color: #6b7aa6; }
+      pre.tree .f { color: var(--accent); }
+      pre.tree .g { color: var(--good); }
+
+      .flow { display: flex; align-items: stretch; gap: 12px; margin-top: 24px; flex-wrap: wrap; }
+      .step {
+        flex: 1 1 0; min-width: 120px; background: var(--card); border: 1px solid var(--line);
+        border-radius: 14px; padding: 14px; position: relative;
+      }
+      .step b { font-size: 15px; }
+      .step small { color: var(--muted); display: block; margin-top: 5px; font-size: 12.5px; line-height: 1.4; }
+      .step .n { color: var(--accent); font-weight: 800; font-size: 12px; }
+
+      .two { display: grid; grid-template-columns: 1.05fr 1fr; gap: 26px; align-items: center; }
+
+      .topbar {
+        position: absolute; top: 22px; left: 7vw; right: 7vw;
+        display: flex; justify-content: space-between; align-items: center;
+        color: var(--muted); font-size: 13px; font-weight: 600;
+      }
+      .brand { display: flex; align-items: center; gap: 10px; color: var(--text); }
+      .logo {
+        width: 26px; height: 26px; border-radius: 7px;
+        background: linear-gradient(135deg, var(--fb), var(--shopify));
+        display: grid; place-items: center; font-weight: 900; font-size: 13px;
+      }
+      .nav {
+        position: absolute; bottom: 20px; left: 7vw; right: 7vw;
+        display: flex; align-items: center; justify-content: space-between;
+      }
+      .dots { display: flex; gap: 8px; }
+      .dots i { width: 9px; height: 9px; border-radius: 50%; background: var(--line); cursor: pointer; transition: .2s; }
+      .dots i.on { background: var(--accent); transform: scale(1.25); }
+      .arrows button {
+        background: var(--card); color: var(--text); border: 1px solid var(--line);
+        width: 40px; height: 40px; border-radius: 11px; font-size: 17px; cursor: pointer;
+      }
+      .arrows button:hover { border-color: var(--accent); }
+      .count { color: var(--muted); font-size: 13px; }
+      .legend { margin-top: 18px; color: var(--muted); font-size: 13px; }
+      .legend span { margin-right: 16px; }
+      .hl { color: var(--text); font-weight: 600; }
+      .quote { border-left: 3px solid var(--warn); padding-left: 14px; color: var(--muted); font-size: 14px; line-height: 1.5; }
+      .ok { color: var(--good); font-weight: 700; }
+    </style>
+  </head>
+  <body>
+    <div class="deck" id="deck">
+      <div class="topbar">
+        <div class="brand"><div class="logo">FP</div> Facebook Pixel &amp; CAPI · Shopify Embedded App</div>
+        <div>Built with Claude Code</div>
+      </div>
+
+      <!-- 1. TITLE -->
+      <section class="slide active">
+        <div class="kicker">Shopify App · Báo cáo dự án</div>
+        <h1>Facebook Pixel &amp; Conversions API<br />cho Shopify</h1>
+        <p class="sub">
+          App nhúng (embedded) giúp merchant quản lý Facebook Pixel &amp; Conversions API (CAPI):
+          CRUD pixel, bật CAPI + access token, theo dõi sự kiện cả phía trình duyệt lẫn server.
+          Toàn bộ được xây dựng cùng <span class="hl">Claude Code</span> theo quy trình kỹ thuật có kiểm soát.
+        </p>
+        <div style="margin-top:22px">
+          <span class="pill">Node + Remix</span>
+          <span class="pill">Polaris React</span>
+          <span class="pill">App Bridge</span>
+          <span class="pill">Prisma + MySQL</span>
+          <span class="pill">Web Pixel Extension</span>
+          <span class="pill">Vitest + Playwright</span>
+        </div>
+        <div class="legend">
+          <span><i class="dot b-sh"></i> Cấu trúc dự án</span>
+          <span><i class="dot b-fb"></i> Chức năng app</span>
+          <span><i class="dot b-ai"></i> Kiến thức AI Claude</span>
+        </div>
+      </section>
+
+      <!-- 2. STRUCTURE OVERVIEW -->
+      <section class="slide">
+        <div class="kicker"><i class="dot b-sh"></i>&nbsp; Phần 1 · Cấu trúc dự án — tổng quan</div>
+        <div class="two">
+          <pre class="tree"><span class="c"># Toàn cảnh thư mục gốc</span>
+facebook-pixel/
+├── <span class="f">app/</span>            <span class="c"># TOÀN BỘ SOURCE CODE của app</span>
+│                    <span class="c">#   (Remix: routes · components · models · lib)</span>
+├── <span class="g">extensions/web-pixel-fb/</span>  <span class="c"># Pixel chạy trên storefront</span>
+├── <span class="f">prisma/</span>         <span class="c"># schema.prisma — model DB</span>
+│
+├── <span class="f">.claude/</span>        <span class="c"># Cấu hình &amp; tooling cho Claude Code</span>
+├── <span class="f">docs/</span>           <span class="c"># Spec · plan · flow · UI mockup · slides</span>
+├── <span class="f">e2e/</span>            <span class="c"># Test end-to-end (Playwright)</span>
+└── <span class="f">.superpowers/</span>   <span class="c"># Ledger tiến độ subagent-driven</span></pre>
+          <div>
+            <h2>2 nhóm thư mục</h2>
+            <div class="grid">
+              <div class="card"><h3><span class="dot b-fb"></span> Sản phẩm</h3><p><span class="hl">app/</span> chứa toàn bộ source code Remix · <span class="hl">extensions/</span> là web pixel · <span class="hl">prisma/</span> là schema DB.</p></div>
+              <div class="card"><h3><span class="dot b-ai"></span> Quy trình &amp; chất lượng</h3><p><span class="hl">.claude · docs · e2e · .superpowers</span> — bộ khung giúp việc phát triển bằng Claude <span class="hl">lặp lại được &amp; có kiểm chứng</span>.</p><p style="margin-top:6px;color:var(--accent)">→ chi tiết ở slide sau</p></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 3. TOOLING & DOCS -->
+      <section class="slide">
+        <div class="kicker"><i class="dot b-ai"></i>&nbsp; Phần 1 · Thư mục quy trình &amp; tài liệu</div>
+        <h2>Bộ khung làm việc cùng Claude</h2>
+        <div class="grid g2" style="margin-top:16px">
+          <div class="card">
+            <h3><span class="dot b-ai"></span> .claude/ <span style="color:var(--muted);font-weight:400">— cấu hình Claude Code</span></h3>
+            <ul>
+              <li><span class="hl">commands/</span> — 6 slash-command định nghĩa flow: <code>brainstorm · plan · userstories · classify · execute · verify</code></li>
+              <li><span class="hl">skills/</span> — 2 skill domain: <code>facebook-capi</code>, <code>shopify-remix-patterns</code> (kiến thức Claude nạp khi cần)</li>
+              <li><span class="hl">hooks/format.mjs</span> — tự động format file sau mỗi lần sửa</li>
+              <li><span class="hl">settings.json</span> — hooks &amp; permissions; <code>settings.local.json</code> override cá nhân</li>
+            </ul>
+          </div>
+          <div class="card">
+            <h3><span class="dot b-fb"></span> docs/ <span style="color:var(--muted);font-weight:400">— tài liệu &amp; thiết kế</span></h3>
+            <ul>
+              <li><span class="hl">superpowers/specs/</span> — bản thiết kế chốt từ <code>/brainstorm</code></li>
+              <li><span class="hl">superpowers/plans/</span> — kế hoạch chia task từ <code>/plan</code></li>
+              <li><span class="hl">flow/</span> — output flow: user-stories, classification, questions, verification</li>
+              <li><span class="hl">ui/</span> — mockup giao diện · <span class="hl">slides/</span> — slide này</li>
+            </ul>
+          </div>
+          <div class="card">
+            <h3><span class="dot b-gd"></span> e2e/ <span style="color:var(--muted);font-weight:400">— kiểm thử end-to-end</span></h3>
+            <ul>
+              <li><span class="hl">global-setup.ts</span> — dọn DB trước khi chạy test</li>
+              <li><span class="hl">pixels.spec.ts · home.spec.ts</span> — kịch bản Playwright mô phỏng thao tác thật trên giao diện</li>
+            </ul>
+          </div>
+          <div class="card">
+            <h3><span class="dot b-wn"></span> .superpowers/ <span style="color:var(--muted);font-weight:400">— bộ nhớ tiến độ</span></h3>
+            <ul>
+              <li><span class="hl">sdd/progress.md</span> — ledger ghi lại task nào đã xong (kèm commit)</li>
+              <li>Giúp Subagent-Driven Development <span class="hl">không làm lại</span> task đã hoàn thành, sống sót qua việc reset context</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <!-- 3. DATA MODEL + ARCH -->
+      <section class="slide">
+        <div class="kicker"><i class="dot b-sh"></i>&nbsp; Phần 1 · Kiến trúc &amp; luồng dữ liệu</div>
+        <h2>Từ storefront đến Meta</h2>
+        <div class="flow">
+          <div class="step"><span class="n">01</span><br /><b>Storefront</b><small>Khách xem trang, thêm giỏ, thanh toán → Web Pixel bắt sự kiện</small></div>
+          <div class="step"><span class="n">02</span><br /><b>Browser pixel</b><small>Bắn beacon <code>facebook.com/tr</code> cho mọi pixel <i>active</i> (listPixelClient)</small></div>
+          <div class="step"><span class="n">03</span><br /><b>POST → App</b><small>Gửi cross-origin tới <code>/capi</code> của app (sandbox chặn same-origin)</small></div>
+          <div class="step"><span class="n">04</span><br /><b>Server CAPI</b><small>App hash PII, gọi Graph API cho pixel bật CAPI (listPixelCapi)</small></div>
+          <div class="step"><span class="n">05</span><br /><b>Lưu &amp; đếm</b><small>Ghi <code>CapiEventLog</code> → Home dashboard hiển thị số lượng</small></div>
+        </div>
+        <div class="grid g3" style="margin-top:26px">
+          <div class="card"><h3><span class="dot b-fb"></span> Pixel</h3><p>id, shop, pixelId (immutable), name, capiEnabled, accessToken, testEventCode, active</p></div>
+          <div class="card"><h3><span class="dot b-sh"></span> WebPixelConfig</h3><p>Lưu webPixelId của shop để <span class="hl">syncWebPixel</span> cập nhật settings (client/capi list, apiUrl, shop)</p></div>
+          <div class="card"><h3><span class="dot b-gd"></span> CapiEventLog</h3><p>Nhật ký từng event CAPI (pixel, eventName, value, status) → dữ liệu cho dashboard</p></div>
+        </div>
+      </section>
+
+      <!-- 4. FEATURES -->
+      <section class="slide">
+        <div class="kicker"><i class="dot b-fb"></i>&nbsp; Phần 2 · Chức năng app</div>
+        <h2>App làm được gì</h2>
+        <div class="grid g3">
+          <div class="card"><h3><span class="dot b-fb"></span> CRUD Pixel</h3><p>List có tìm kiếm, thêm/sửa/xoá; Pixel ID cố định sau khi tạo; nút Edit/Delete + modal xác nhận.</p></div>
+          <div class="card"><h3><span class="dot b-fb"></span> CAPI + Token</h3><p>Bật CAPI, nhập access token. Khi lưu, app <span class="hl">validate token</span> bằng cách gửi 1 event test lên Meta — sai là chặn lưu.</p></div>
+          <div class="card"><h3><span class="dot b-fb"></span> Test event code</h3><p>Cột riêng + nút <span class="hl">Setup</span> → modal đặt test code (route event vào Test Events của Meta).</p></div>
+          <div class="card"><h3><span class="dot b-gd"></span> Web Pixel (client)</h3><p>Bắn 5 sự kiện: PageView, ViewContent, AddToCart, InitiateCheckout, Purchase — cho mọi pixel active.</p></div>
+          <div class="card"><h3><span class="dot b-gd"></span> Server CAPI</h3><p>Gửi event song song qua Conversions API (hash email/phone, fbp/fbc, dedup theo event_id).</p></div>
+          <div class="card"><h3><span class="dot b-sh"></span> Home dashboard</h3><p>Bảng đếm sự kiện theo từng pixel × loại event, cột <span class="hl">Is CAPI</span>, nút <span class="hl">Refresh</span>.</p></div>
+          <div class="card"><h3><span class="dot b-sh"></span> Shopify SaveBar</h3><p>Form tạo/sửa dùng contextual SaveBar của App Bridge (Save/Discard ở đỉnh khi có thay đổi).</p></div>
+          <div class="card"><h3><span class="dot b-gd"></span> Audit log</h3><p>Mỗi event CAPI được ghi lại (trạng thái + phản hồi) phục vụ kiểm tra &amp; thống kê.</p></div>
+          <div class="card"><h3><span class="dot b-fb"></span> Bảo mật &amp; auth</h3><p>Session-based, validate <code>shop</code> mọi request; mã hoá token (AES-256-GCM) tuỳ cấu hình.</p></div>
+        </div>
+      </section>
+
+      <!-- 5. AI CLAUDE — FLOW -->
+      <section class="slide">
+        <div class="kicker"><i class="dot b-ai"></i>&nbsp; Phần 3 · Kiến thức AI Claude trong dự án</div>
+        <div class="two">
+          <div>
+            <h2>Quy trình phát triển có kiểm soát</h2>
+            <p class="sub" style="margin-top:10px">App <span class="hl">không nhúng AI lúc chạy</span> — giá trị của Claude nằm ở <span class="hl">cách xây dựng</span>: một pipeline kỹ thuật chặt chẽ, mỗi bước ghi output ra <code>docs/superpowers/</code>.</p>
+            <div class="flow" style="flex-direction:column; gap:10px; margin-top:20px">
+              <div class="step"><span class="n">/brainstorm</span> → biến ý tưởng thành <b>spec</b> (hỏi từng câu, chốt design)</div>
+              <div class="step"><span class="n">/plan</span> → <b>kế hoạch</b> chia task nhỏ, có code &amp; test cụ thể</div>
+              <div class="step"><span class="n">/userstories · /classify</span> → user story &amp; phân loại độ phức tạp</div>
+              <div class="step"><span class="n">/execute · /verify</span> → thực thi &amp; kiểm chứng</div>
+            </div>
+          </div>
+          <div class="grid">
+            <div class="card"><h3><span class="dot b-ai"></span> Skills (Superpowers)</h3><p>Bộ kỹ năng chuẩn hoá: brainstorming, writing-plans, subagent-driven-development, systematic-debugging — Claude tự gọi đúng skill cho từng tình huống.</p></div>
+            <div class="card"><h3><span class="dot b-gd"></span> TDD (Red → Green)</h3><p>Mọi tính năng/bugfix <span class="hl">viết test trước</span>, chạy cho đỏ, rồi mới code cho xanh. Unit (Vitest) + E2E (Playwright).</p></div>
+            <div class="card"><h3><span class="dot b-wn"></span> Hooks &amp; tooling</h3><p>Auto-format sau khi sửa file, <code>.claude/settings.json</code>, slash-command tự định nghĩa.</p></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 6. AI CLAUDE — SUBAGENTS + DEBUG -->
+      <section class="slide">
+        <div class="kicker"><i class="dot b-ai"></i>&nbsp; Phần 3 · Cách Claude làm việc &amp; gỡ lỗi</div>
+        <div class="grid g2">
+          <div class="card">
+            <h3><span class="dot b-ai"></span> Subagent-Driven Development</h3>
+            <p>Mỗi task → một <span class="hl">subagent mới</span> (context sạch) viết code + test + commit, rồi một subagent <span class="hl">reviewer</span> soát spec &amp; chất lượng. Chọn model theo độ khó (rẻ cho việc cơ học, mạnh cho review).</p>
+            <ul>
+              <li>Implementer tươi mỗi task → không nhiễu context</li>
+              <li>Review 2 lớp: đúng spec + chất lượng code</li>
+              <li>Ledger tiến độ để không làm lại task đã xong</li>
+            </ul>
+          </div>
+          <div class="card">
+            <h3><span class="dot b-gd"></span> Systematic Debugging</h3>
+            <p>Luật sắt: <span class="hl">tìm root cause trước, không vá triệu chứng</span>. Thu thập bằng chứng ở từng lớp rồi mới sửa. Ví dụ thực tế trong dự án:</p>
+            <ul>
+              <li class="quote">Token báo "Invalid parameter" → gọi thẳng Graph API, phát hiện <b>user_data rỗng</b> (không phải token sai) → thêm UA+IP. <span class="ok">✓ token vốn hợp lệ</span></li>
+              <li class="quote">Web pixel lỗi <b>RestrictedUrlError</b> (sandbox chặn same-origin) → đổi sang POST cross-origin tới app. <span class="ok">✓ CAPI hoạt động</span></li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <!-- 7. CLOSING -->
+      <section class="slide">
+        <div class="kicker"><i class="dot b-ai"></i>&nbsp; Tổng kết</div>
+        <h1>Một app gọn — một quy trình chắc</h1>
+        <div class="grid g3" style="margin-top:24px">
+          <div class="card"><h3><span class="dot b-sh"></span> Cấu trúc</h3><p>Tách lớp routes · models · lib · extensions; server-only tách bạch; có specs &amp; plans lưu vết.</p></div>
+          <div class="card"><h3><span class="dot b-fb"></span> Chức năng</h3><p>CRUD pixel, CAPI + validate token, test code, tracking client + server, dashboard, audit log.</p></div>
+          <div class="card"><h3><span class="dot b-ai"></span> AI Claude</h3><p>Flow brainstorm→plan→execute→verify, skills, TDD, subagent-driven, systematic-debugging.</p></div>
+        </div>
+        <p class="sub" style="margin-top:26px">
+          Kết quả: tính năng có test (unit + E2E xanh), bug được truy tận gốc bằng bằng chứng thật,
+          và mỗi quyết định thiết kế đều được ghi lại — dễ bảo trì, dễ mở rộng.
+        </p>
+      </section>
+
+      <div class="nav">
+        <div class="count"><span id="cur">1</span> / <span id="tot">7</span></div>
+        <div class="dots" id="dots"></div>
+        <div class="arrows">
+          <button onclick="go(-1)" aria-label="Prev">‹</button>
+          <button onclick="go(1)" aria-label="Next">›</button>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      const slides = [...document.querySelectorAll(".slide")];
+      const dotsBox = document.getElementById("dots");
+      let i = 0;
+      document.getElementById("tot").textContent = slides.length;
+      slides.forEach((_, n) => {
+        const d = document.createElement("i");
+        d.onclick = () => set(n);
+        dotsBox.appendChild(d);
+      });
+      const dots = [...dotsBox.children];
+      function set(n) {
+        i = Math.max(0, Math.min(slides.length - 1, n));
+        slides.forEach((s, k) => s.classList.toggle("active", k === i));
+        dots.forEach((d, k) => d.classList.toggle("on", k === i));
+        document.getElementById("cur").textContent = i + 1;
+      }
+      function go(d) { set(i + d); }
+      addEventListener("keydown", (e) => {
+        if (e.key === "ArrowRight" || e.key === " " || e.key === "PageDown") go(1);
+        if (e.key === "ArrowLeft" || e.key === "PageUp") go(-1);
+        if (e.key === "Home") set(0);
+        if (e.key === "End") set(slides.length - 1);
+      });
+      set(0);
+    </script>
+  </body>
+</html>
