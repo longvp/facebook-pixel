@@ -60,10 +60,6 @@ export async function syncWebPixel(
       variables: { id: config.webPixelId, settings },
     });
     const json: any = await res.json();
-    console.log(
-      "[syncWebPixel] webPixelUpdate response:",
-      JSON.stringify(json),
-    );
     const errs = json?.data?.webPixelUpdate?.userErrors ?? [];
     if (errs.length)
       console.warn("[syncWebPixel] webPixelUpdate userErrors:", errs);
@@ -72,7 +68,6 @@ export async function syncWebPixel(
 
   const res = await admin.graphql(CREATE, { variables: { settings } });
   const json: any = await res.json();
-  console.log("[syncWebPixel] webPixelCreate response:", JSON.stringify(json));
   const id = json?.data?.webPixelCreate?.webPixel?.id;
   if (id) {
     await prisma.webPixelConfig.upsert({
