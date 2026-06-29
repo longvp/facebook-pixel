@@ -1,5 +1,4 @@
 import prisma from "../db.server";
-import { encrypt, decrypt } from "../lib/crypto.server";
 
 export type PixelInput = {
   name: string;
@@ -16,12 +15,14 @@ export type PixelView = {
   pixelId: string;
   capiEnabled: boolean;
   hasAccessToken: boolean;
+  accessToken?: string | null;
   testEventCode: string | null;
   active: boolean;
   createdAt: Date;
   updatedAt: Date;
 };
 
+// List view redacts the token — don't ship secrets to the list page.
 function toView(p: any): PixelView {
   const { accessToken, ...rest } = p;
   return {
@@ -38,12 +39,14 @@ export async function listPixels(shop: string): Promise<PixelView[]> {
   return rows.map(toView);
 }
 
+// Detail view INCLUDES the (plaintext) token so the edit form can show the origin.
 export async function getPixel(
   shop: string,
   id: string,
 ): Promise<PixelView | null> {
   const p = await prisma.pixel.findFirst({ where: { id, shop } });
-  return p ? toView(p) : null;
+  if (!p) return null;
+  return { ...toView(p), accessToken: p.accessToken ?? null };
 }
 
 export async function createPixel(
@@ -61,7 +64,8 @@ export async function createPixel(
       pixelId: input.pixelId.trim(),
       capiEnabled: input.capiEnabled,
       testEventCode: input.testEventCode ?? null,
-      accessToken: input.accessToken ? encrypt(input.accessToken) : null,
+      // Stored as plaintext (no encryption).
+      accessToken: input.accessToken ?? null,
     },
   });
   return toView(p);
@@ -78,7 +82,7 @@ export async function updatePixel(
   if (input.name !== undefined) data.name = input.name.trim();
   if (input.testEventCode !== undefined)
     data.testEventCode = input.testEventCode;
-  if (input.accessToken) data.accessToken = encrypt(input.accessToken);
+  if (input.accessToken) data.accessToken = input.accessToken;
   if (input.capiEnabled !== undefined) {
     const hasToken = input.accessToken || existing.accessToken;
     if (input.capiEnabled && !hasToken)
@@ -123,10 +127,11 @@ export async function setCapiEnabled(
   );
 }
 
-export async function getDecryptedToken(
+// Returns the stored (plaintext) access token.
+export async function getAccessToken(
   shop: string,
   id: string,
 ): Promise<string | null> {
   const p = await prisma.pixel.findFirst({ where: { id, shop } });
-  return p?.accessToken ? decrypt(p.accessToken) : null;
+  return p?.accessToken ?? null;
 }

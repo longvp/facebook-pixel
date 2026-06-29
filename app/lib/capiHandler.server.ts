@@ -1,4 +1,4 @@
-import { listPixels, getDecryptedToken } from "../models/pixel.server";
+import { listPixels, getAccessToken } from "../models/pixel.server";
 import { buildEvent, sendEvents } from "./capi.server";
 import { logCapiEvent } from "../models/capiEventLog.server";
 
@@ -26,7 +26,7 @@ export async function handleCapiEvent(
 
   await Promise.all(
     pixels.map(async (p) => {
-      const token = await getDecryptedToken(shop, p.id);
+      const token = await getAccessToken(shop, p.id);
       if (!token) return;
       const event = buildEvent({
         eventName: payload.eventName,

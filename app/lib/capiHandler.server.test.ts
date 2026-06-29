@@ -17,7 +17,7 @@ vi.mock("../models/pixel.server", () => ({
       testEventCode: null,
     },
   ]),
-  getDecryptedToken: vi.fn(async () => "tok"),
+  getAccessToken: vi.fn(async () => "tok"),
 }));
 const sendEvents = vi.fn(async () => ({ ok: true, status: 200, body: {} }));
 vi.mock("./capi.server", async (orig) => ({

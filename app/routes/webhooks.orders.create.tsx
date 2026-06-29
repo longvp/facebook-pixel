@@ -1,6 +1,6 @@
 import type { ActionFunctionArgs } from "@remix-run/node";
 import { authenticate } from "../shopify.server";
-import { listPixels, getDecryptedToken } from "../models/pixel.server";
+import { listPixels, getAccessToken } from "../models/pixel.server";
 import { buildEvent, sendEvents } from "../lib/capi.server";
 
 export const action = async ({ request }: ActionFunctionArgs) => {
@@ -19,7 +19,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 
   await Promise.all(
     pixels.map(async (p) => {
-      const token = await getDecryptedToken(shop, p.id);
+      const token = await getAccessToken(shop, p.id);
       if (!token) return;
       const event = buildEvent({
         eventName: "Purchase",

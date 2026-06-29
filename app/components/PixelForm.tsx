@@ -24,14 +24,20 @@ export function PixelForm({
   // (JsonifyObject<PixelView>) assigns cleanly.
   initial?: Pick<
     PixelView,
-    "name" | "pixelId" | "capiEnabled" | "testEventCode" | "hasAccessToken"
+    | "name"
+    | "pixelId"
+    | "capiEnabled"
+    | "testEventCode"
+    | "hasAccessToken"
+    | "accessToken"
   >;
   error?: string;
 }) {
   const [name, setName] = useState(initial?.name ?? "");
   const [pixelId, setPixelId] = useState(initial?.pixelId ?? "");
   const [capiEnabled, setCapiEnabled] = useState(initial?.capiEnabled ?? false);
-  const [accessToken, setAccessToken] = useState("");
+  // Pre-fill the real token on edit so the origin token is shown.
+  const [accessToken, setAccessToken] = useState(initial?.accessToken ?? "");
   const [testEventCode, setTestEventCode] = useState(
     initial?.testEventCode ?? "",
   );
@@ -93,15 +99,11 @@ export function PixelForm({
                 <TextField
                   label="Facebook access token"
                   name="accessToken"
-                  type="password"
+                  type="text"
                   value={accessToken}
                   onChange={setAccessToken}
                   autoComplete="off"
-                  placeholder={
-                    initial?.hasAccessToken
-                      ? "•••••••• (leave blank to keep)"
-                      : "Enter your access token"
-                  }
+                  placeholder="Enter your access token"
                   helpText="Requires a System User Token with ads_management and ads_read."
                 />
                 <TextField

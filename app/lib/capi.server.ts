@@ -65,7 +65,7 @@ export async function sendEvents(
   events: CapiEvent[],
   testEventCode?: string | null,
 ): Promise<{ ok: boolean; status: number; body: any }> {
-  const url = `https://graph.facebook.com/${API_VERSION}/${pixelId}/events?access_token=${encodeURIComponent(accessToken)}`;
+  const url = `https://graph.facebook.com/${API_VERSION}/${pixelId}/events?access_token=${accessToken}`;
   const payload: Record<string, unknown> = { data: events };
   if (testEventCode) payload.test_event_code = testEventCode;
   const res = await fetch(url, {
