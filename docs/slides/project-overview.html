@@ -270,6 +270,29 @@ facebook-pixel/
         </div>
       </section>
 
+      <!-- 4.5 AI WORKFLOW — PIPELINE & TRIỂN KHAI -->
+      <section class="slide">
+        <div class="kicker"><i class="dot b-ai"></i>&nbsp; Phần 3 · Workflow AI — áp dụng &amp; triển khai</div>
+        <h2>Pipeline 6 bước: từ ý tưởng đến code đã kiểm chứng</h2>
+        <p class="sub" style="margin-top:8px;max-width:78ch">
+          Mỗi bước là một <span class="hl">slash-command</span> trong <code>.claude/commands/</code>, chạy tuần tự và
+          <span class="hl">ghi output ra file</span> trước khi sang bước sau — không nhảy cóc, luôn có vết để review.
+        </p>
+        <div class="flow" style="margin-top:22px">
+          <div class="step"><span class="n">/brainstorm</span><br /><b>Spec</b><small>Hỏi từng câu, chốt phạm vi &amp; design → <code>docs/superpowers/specs/</code></small></div>
+          <div class="step"><span class="n">/plan</span><br /><b>Kế hoạch</b><small>Chia task nhỏ, kèm code &amp; test cụ thể → <code>docs/superpowers/plans/</code></small></div>
+          <div class="step"><span class="n">/userstories</span><br /><b>User story</b><small>Tiêu chí chấp nhận cho từng story → <code>docs/flow/</code></small></div>
+          <div class="step"><span class="n">/classify</span><br /><b>Phân loại</b><small>now / complex / discuss — tách việc &amp; câu hỏi cần làm rõ</small></div>
+          <div class="step"><span class="n">/execute</span><br /><b>Thực thi</b><small>TDD từng task, commit thường xuyên (subagent-driven)</small></div>
+          <div class="step"><span class="n">/verify</span><br /><b>Kiểm chứng</b><small>Đối chiếu acceptance bằng test thật → bằng chứng</small></div>
+        </div>
+        <div class="grid g3" style="margin-top:24px">
+          <div class="card"><h3><span class="dot b-ai"></span> Cách kích hoạt</h3><p>Gõ <code>/brainstorm</code>… ngay trong Claude Code. Lệnh được định nghĩa ở <span class="hl">.claude/commands/</span>, nạp <span class="hl">skills</span> domain (facebook-capi, shopify-remix) khi cần.</p></div>
+          <div class="card"><h3><span class="dot b-gd"></span> Lưu vết &amp; checkpoint</h3><p>Mỗi bước ghi file ở <span class="hl">docs/</span> + <span class="hl">.superpowers/sdd/progress.md</span>. Con người <span class="hl">review giữa các bước</span> trước khi đi tiếp → kiểm soát chất lượng.</p></div>
+          <div class="card"><h3><span class="dot b-wn"></span> Lặp lại được</h3><p>Context reset vẫn tiếp tục được nhờ ledger tiến độ; chạy lại pipeline cho tính năng mới mà <span class="hl">không làm lại</span> việc đã xong.</p></div>
+        </div>
+      </section>
+
       <!-- 5. AI CLAUDE — FLOW -->
       <section class="slide">
         <div class="kicker"><i class="dot b-ai"></i>&nbsp; Phần 3 · Kiến thức AI Claude trong dự án</div>
@@ -314,6 +337,103 @@ facebook-pixel/
             </ul>
           </div>
         </div>
+      </section>
+
+      <!-- 6.5 SUBAGENT LOOP — SƠ ĐỒ -->
+      <section class="slide">
+        <div class="kicker"><i class="dot b-ai"></i>&nbsp; Phần 3 · Sơ đồ vòng lặp subagent</div>
+        <h2>Một task chạy qua vòng lặp như thế nào</h2>
+        <div class="card" style="margin-top:14px; padding:12px 16px">
+          <svg viewBox="0 0 1000 400" style="width:100%; height:auto; max-height:52vh; display:block">
+            <defs>
+              <marker id="ah" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto" markerUnits="strokeWidth"><path d="M0,0 L7,3 L0,6 Z" fill="#7aa2ff" /></marker>
+              <marker id="ahg" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto" markerUnits="strokeWidth"><path d="M0,0 L7,3 L0,6 Z" fill="#28c76f" /></marker>
+              <marker id="ahw" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto" markerUnits="strokeWidth"><path d="M0,0 L7,3 L0,6 Z" fill="#ffb547" /></marker>
+            </defs>
+
+            <!-- arrows -->
+            <path d="M170,196 C206,150 206,128 228,116" fill="none" stroke="#7aa2ff" stroke-width="2" marker-end="url(#ah)" />
+            <path d="M480,105 L524,105" fill="none" stroke="#7aa2ff" stroke-width="2" marker-end="url(#ah)" />
+            <path d="M750,105 L806,105" fill="none" stroke="#7aa2ff" stroke-width="2" marker-end="url(#ah)" />
+            <path d="M870,155 C870,220 870,268 776,268" fill="none" stroke="#28c76f" stroke-width="2" marker-end="url(#ahg)" />
+            <path d="M530,316 C300,362 150,330 97,254" fill="none" stroke="#7aa2ff" stroke-width="2" marker-end="url(#ah)" />
+            <path d="M868,56 C868,8 600,2 357,36" fill="none" stroke="#ffb547" stroke-width="2" stroke-dasharray="6 5" marker-end="url(#ahw)" />
+
+            <!-- Orchestrator -->
+            <rect x="20" y="160" width="155" height="92" rx="14" fill="#131a31" stroke="#7aa2ff" stroke-width="1.5" />
+            <text x="97" y="200" text-anchor="middle" fill="#e8edf7" font-size="15" font-weight="700" font-family="Segoe UI, sans-serif">Claude điều phối</text>
+            <text x="97" y="221" text-anchor="middle" fill="#95a2c4" font-size="12" font-family="Segoe UI, sans-serif">(orchestrator)</text>
+
+            <!-- Implementer -->
+            <rect x="228" y="40" width="252" height="130" rx="14" fill="#1a2238" stroke="#b07aff" stroke-width="1.5" />
+            <text x="354" y="68" text-anchor="middle" fill="#b07aff" font-size="16" font-weight="700" font-family="Segoe UI, sans-serif">Implementer subagent</text>
+            <text x="354" y="90" text-anchor="middle" fill="#95a2c4" font-size="12.5" font-family="Segoe UI, sans-serif">context sạch mỗi task</text>
+            <text x="354" y="114" text-anchor="middle" fill="#e8edf7" font-size="13" font-family="Segoe UI, sans-serif">① Viết test → Red</text>
+            <text x="354" y="135" text-anchor="middle" fill="#e8edf7" font-size="13" font-family="Segoe UI, sans-serif">② Code → Green</text>
+            <text x="354" y="156" text-anchor="middle" fill="#e8edf7" font-size="13" font-family="Segoe UI, sans-serif">③ Commit</text>
+
+            <!-- Reviewer -->
+            <rect x="528" y="40" width="222" height="130" rx="14" fill="#1a2238" stroke="#28c76f" stroke-width="1.5" />
+            <text x="639" y="70" text-anchor="middle" fill="#28c76f" font-size="16" font-weight="700" font-family="Segoe UI, sans-serif">Reviewer subagent</text>
+            <text x="639" y="98" text-anchor="middle" fill="#95a2c4" font-size="12.5" font-family="Segoe UI, sans-serif">Soát 2 lớp:</text>
+            <text x="639" y="122" text-anchor="middle" fill="#e8edf7" font-size="13" font-family="Segoe UI, sans-serif">• đúng spec?</text>
+            <text x="639" y="144" text-anchor="middle" fill="#e8edf7" font-size="13" font-family="Segoe UI, sans-serif">• chất lượng code?</text>
+
+            <!-- Decision -->
+            <polygon points="870,55 930,105 870,155 810,105" fill="#131a31" stroke="#ffb547" stroke-width="1.5" />
+            <text x="870" y="110" text-anchor="middle" fill="#ffb547" font-size="15" font-weight="700" font-family="Segoe UI, sans-serif">Đạt?</text>
+
+            <!-- Ledger -->
+            <rect x="530" y="270" width="320" height="92" rx="14" fill="#131a31" stroke="#7aa2ff" stroke-width="1.5" />
+            <text x="690" y="308" text-anchor="middle" fill="#e8edf7" font-size="15" font-weight="700" font-family="Segoe UI, sans-serif">Cập nhật ledger tiến độ</text>
+            <text x="690" y="330" text-anchor="middle" fill="#95a2c4" font-size="12.5" font-family="Segoe UI, sans-serif">→ giao task tiếp theo</text>
+
+            <!-- arrow labels -->
+            <text x="182" y="152" fill="#7aa2ff" font-size="11" font-family="Segoe UI, sans-serif">giao task</text>
+            <text x="486" y="98" fill="#95a2c4" font-size="11" font-family="Segoe UI, sans-serif">code + test</text>
+            <text x="884" y="212" fill="#28c76f" font-size="14" font-weight="700" font-family="Segoe UI, sans-serif">✓</text>
+            <text x="300" y="348" fill="#7aa2ff" font-size="12" font-family="Segoe UI, sans-serif">task tiếp theo</text>
+            <text x="560" y="20" fill="#ffb547" font-size="12" font-weight="600" font-family="Segoe UI, sans-serif">✗ trả về sửa (kèm góp ý)</text>
+          </svg>
+        </div>
+        <div class="legend">
+          <span><i class="dot b-ai"></i> Implementer — context sạch, TDD + commit</span>
+          <span><i class="dot b-gd"></i> Reviewer — soát spec &amp; chất lượng</span>
+          <span><i class="dot b-wn"></i> Chưa đạt → trả về sửa, không merge</span>
+        </div>
+      </section>
+
+      <!-- 6.6 FLOW THỰC TẾ — TÍNH NĂNG MỚI vs FIX BUG -->
+      <section class="slide">
+        <div class="kicker"><i class="dot b-ai"></i>&nbsp; Phần 3 · Áp dụng vào việc thật</div>
+        <h2>Muốn làm tính năng mới hoặc fix bug thì flow thế nào?</h2>
+        <div class="grid g2" style="margin-top:16px">
+          <div class="card">
+            <h3><span class="dot b-fb"></span> Tính năng mới — ví dụ: cột “Test event code” + nút Setup</h3>
+            <div class="flow" style="flex-direction:column; gap:9px; margin-top:12px">
+              <div class="step"><span class="n">/brainstorm</span> → chốt spec: cột riêng trên Pixel List + nút <b>Setup</b> mở modal đặt test code</div>
+              <div class="step"><span class="n">/plan</span> → chia task: field DB · action route · UI cột + modal · test</div>
+              <div class="step"><span class="n">/userstories · /classify</span> → tiêu chí chấp nhận từng story, phân loại now / complex</div>
+              <div class="step"><span class="n">/execute (TDD)</span> → viết test cột + modal cho <b>đỏ</b> → code Polaris cho <b>xanh</b> → commit</div>
+              <div class="step"><span class="n">/verify</span> → E2E Playwright thao tác thật trên UI → <span class="ok">xanh</span></div>
+            </div>
+          </div>
+          <div class="card">
+            <h3><span class="dot b-wn"></span> Fix bug — ví dụ: token báo “Invalid parameter”</h3>
+            <div class="flow" style="flex-direction:column; gap:9px; margin-top:12px">
+              <div class="step"><span class="n">skill</span> <b>systematic-debugging</b> → luật sắt: tìm root cause, <b>không vá triệu chứng</b></div>
+              <div class="step"><span class="n">bằng chứng</span> → gọi thẳng Graph API với cùng payload để khoanh vùng lớp lỗi</div>
+              <div class="step"><span class="n">root cause</span> → <b>user_data rỗng</b> (thiếu UA + IP) — token vốn hợp lệ</div>
+              <div class="step"><span class="n">test trước</span> → viết test tái hiện lỗi cho <b>đỏ</b> → fix: thêm <code>client_user_agent</code> + IP → <b>xanh</b></div>
+              <div class="step"><span class="n">/verify</span> → gửi thật lên Meta → <span class="ok">events_received: 1 ✓</span></div>
+            </div>
+          </div>
+        </div>
+        <p class="sub" style="margin-top:14px; max-width:88ch">
+          Khác biệt chính: tính năng mới đi <span class="hl">đủ pipeline brainstorm → verify</span>;
+          fix bug vào thẳng <span class="hl">systematic-debugging</span> (bằng chứng → root cause → test tái hiện → fix) —
+          nhưng cả hai đều <span class="hl">test trước, có vết, được review</span> qua vòng lặp subagent ở slide trước.
+        </p>
       </section>
 
       <!-- RESULTS — Kết quả đạt được -->
