@@ -19,6 +19,7 @@
     "test:watch": "vitest",
     "dev:e2e": "cross-env E2E=1 remix vite:dev --port 3000",
     "test:e2e": "playwright test",
+    "test:e2e:headed": "cross-env SLOWMO=500 playwright test --headed --project=chromium",
     "shopify": "shopify",
     "prisma": "prisma",
     "graphql-codegen": "graphql-codegen",
