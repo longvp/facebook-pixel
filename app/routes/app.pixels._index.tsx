@@ -116,12 +116,12 @@ export default function Index() {
             {filtered.map((p, i) => (
               <IndexTable.Row id={p.id} key={p.id} position={i}>
                 <IndexTable.Cell>
-                  <Text as="span" tone="subdued">
+                  <Text as="span" fontWeight="bold">
                     <code>{p.pixelId}</code>
                   </Text>
                 </IndexTable.Cell>
                 <IndexTable.Cell>
-                  <Text as="span" fontWeight="medium">
+                  <Text as="span" fontWeight="bold">
                     {p.name}
                   </Text>
                 </IndexTable.Cell>
