@@ -1,4 +1,9 @@
-import { Form, useSubmit, useRouteLoaderData } from "@remix-run/react";
+import {
+  Form,
+  useSubmit,
+  useRouteLoaderData,
+  useNavigation,
+} from "@remix-run/react";
 import {
   Card,
   BlockStack,
@@ -18,18 +23,31 @@ import type { PixelView } from "../models/pixel.server";
 // Shopify contextual SaveBar (App Bridge) — only mounted in the embedded app.
 function PixelSaveBar({
   dirty,
+  submitting,
   onSave,
   onDiscard,
 }: {
   dirty: boolean;
+  submitting: boolean;
   onSave: () => void;
   onDiscard: () => void;
 }) {
   const shopify = useAppBridge();
+  // Hide while submitting so the post-save redirect isn't blocked by App
+  // Bridge's "unsaved changes" guard (a visible SaveBar intercepts navigation).
+  // On a failed save the form stays dirty and submitting returns to idle, so
+  // the bar reappears.
   useEffect(() => {
-    if (dirty) shopify.saveBar.show("pixel-save-bar");
+    if (dirty && !submitting) shopify.saveBar.show("pixel-save-bar");
     else shopify.saveBar.hide("pixel-save-bar");
-  }, [dirty, shopify]);
+  }, [dirty, submitting, shopify]);
+  // The SaveBar is a global App Bridge surface; without this, leaving the form
+  // while still dirty (e.g. Save → redirect to the list) leaves it showing.
+  useEffect(() => {
+    return () => {
+      shopify.saveBar.hide("pixel-save-bar");
+    };
+  }, [shopify]);
   return (
     <SaveBar id="pixel-save-bar">
       <button variant="primary" onClick={onSave}>
@@ -70,6 +88,8 @@ export function PixelForm({
 
   const formRef = useRef<HTMLFormElement>(null);
   const submit = useSubmit();
+  const navigation = useNavigation();
+  const submitting = navigation.state !== "idle";
 
   // App Bridge isn't loaded in E2E (Polaris-only app.tsx branch) — fall back to
   // inline buttons there so the SaveBar (App Bridge) is never required.
@@ -192,6 +212,7 @@ export function PixelForm({
         ) : (
           <PixelSaveBar
             dirty={dirty}
+            submitting={submitting}
             onSave={handleSave}
             onDiscard={handleDiscard}
           />
