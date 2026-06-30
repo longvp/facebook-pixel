@@ -516,14 +516,42 @@
         </div>
       </section>
 
+      <!-- LESSONS LEARNED — Bài học rút ra -->
+      <section class="slide">
+        <div class="kicker"><i class="dot b-ai"></i>&nbsp; Phần 5 · Bài học rút ra</div>
+        <h2>Rút ra gì sau khi xây dự án cùng Claude?</h2>
+        <div class="grid g3" style="margin-top:16px">
+          <div class="card">
+            <h3><span class="dot b-gd"></span> TDD giữ AI khỏi “tự tin sai”</h3>
+            <p>Viết test trước buộc Claude chứng minh code chạy thật, không chỉ “trông có vẻ đúng”. Red → Green là lưới an toàn cho code do AI sinh ra.</p>
+          </div>
+          <div class="card">
+            <h3><span class="dot b-wn"></span> Bằng chứng &gt; phỏng đoán</h3>
+            <p>Systematic-debugging tìm <span class="hl">root cause</span> thật: token “Invalid parameter” hoá ra do <code>user_data</code> rỗng; <code>RestrictedUrlError</code> do sandbox; SaveBar kẹt do App Bridge chặn điều hướng — không vá triệu chứng.</p>
+          </div>
+          <div class="card">
+            <h3><span class="dot b-ai"></span> Lưu vết &amp; review từng bước</h3>
+            <p>Spec · plan · flow ghi ra <code>docs/</code>, commit có ngữ cảnh, review 2 lớp. Con người <span class="hl">quyết định giữa các bước</span> — AI tăng tốc, không thay quyền duyệt.</p>
+          </div>
+          <div class="card">
+            <h3><span class="dot b-fb"></span> Kiểm soát quyền của AI</h3>
+            <p>Hooks + permissions là cần thiết: chặn AI <code>git commit/push</code>, <span class="hl">deny đọc <code>.env</code></span> &amp; lệnh phá hoại. Tự do của agent phải có rào.</p>
+          </div>
+          <div class="card">
+            <h3><span class="dot b-sh"></span> Hiểu giới hạn công cụ</h3>
+            <p>Không phải mọi thứ test tự động được — đường App Bridge (SaveBar) không chạm tới ở E2E nên cần <span class="hl">verify thủ công</span>. Biết chỗ AI “mù” để bù bằng người.</p>
+          </div>
+          <div class="card">
+            <h3><span class="dot b-gd"></span> Re-read context, chốt rõ ý</h3>
+            <p>Đọc lại CLAUDE.md + spec trước mỗi feature giúp Claude làm theo <span class="hl">thiết kế hiện tại</span>, không theo trí nhớ. Yêu cầu càng rõ, kết quả càng đúng.</p>
+          </div>
+        </div>
+      </section>
+
       <!-- THANK YOU -->
       <section class="slide" style="align-items:center; text-align:center">
         <div class="kicker" style="justify-content:center">Facebook Pixel &amp; CAPI · Shopify App</div>
         <h1 style="font-size:clamp(40px,7vw,96px)">Cảm ơn<br />mọi người đã theo dõi 🙌</h1>
-        <p class="sub" style="margin:18px auto 0; max-width:64ch">
-          Pixel &amp; Conversions API cho Shopify — xây dựng cùng <span class="hl">Claude Code</span>
-          theo quy trình TDD, có kiểm soát &amp; lưu vết.
-        </p>
         <div style="margin-top:24px">
           <span class="pill">Q&amp;A</span>
           <span class="pill">Demo</span>
